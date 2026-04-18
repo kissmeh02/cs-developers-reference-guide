@@ -1,0 +1,326 @@
+<!-- 06 ARCHITECTURE -->
+<div class="section" id="s-arch">
+  <div class="sec-head"><div class="sec-tag">// 06 · systems</div><div class="sec-title">System <em>Architecture</em></div><div class="sec-desc">Monolith vs microservices, SOLID, DDD, hexagonal architecture, event-driven patterns, CQRS/Event Sourcing, and the 2026 reference stack.</div></div>
+  <div class="sub">
+    <div class="sub-head">Architecture Evolution</div>
+    <table class="tbl"><tr><th>Pattern</th><th>When to use</th><th>Tradeoffs</th></tr>
+    <tr><td style="color:var(--green)">Modular Monolith</td><td>0 → PMF. Team &lt;15. Single deploy cadence.</td><td>Simple ops, fast iteration. Limited independent scaling.</td></tr>
+    <tr><td style="color:var(--cyan)">Service-Oriented (SOA)</td><td>Enterprise with existing systems, ESB integration</td><td>Coarse-grained services, often ESB-coupled. Heavy XML/SOAP era.</td></tr>
+    <tr><td style="color:var(--amber)">Microservices</td><td>Proven scaling bottleneck. Teams need separate deploy cadence.</td><td>Ops complexity, distributed tracing required, network latency budget.</td></tr>
+    <tr><td style="color:var(--purple)">Event-Driven / CQRS</td><td>Audit trails, async workflows, high write throughput, temporal decoupling</td><td>Eventual consistency, harder to debug, schema evolution challenging.</td></tr>
+    <tr><td style="color:var(--red)">Serverless</td><td>Spiky/unpredictable traffic, event handlers, glue code</td><td>Cold starts, max execution time, vendor lock-in, debugging harder.</td></tr></table>
+    <div class="warn"><div class="wh">// START MONOLITH — EXTRACT LATER</div><p>Microservices are an optimization for organizational scale and independent deployment needs — not a starting architecture. A modular monolith with clean boundaries is easier to extract into services later than a big ball of mud is to clean up. Premature distribution is the root of accidental complexity.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SOLID Principles</div>
+    <div class="g2">
+      <div class="card"><div class="cl">S — Single Responsibility</div><div class="ct">One reason to change</div><div class="cb">A module has exactly one actor who can require it to change. A UserService that also sends emails violates SRP — the marketing team and auth team both own it now.</div></div>
+      <div class="card"><div class="cl">O — Open/Closed</div><div class="ct">Open for extension, closed for modification</div><div class="cb">Add behavior through new code, not by editing existing code. Strategy pattern, plugin systems. Adding a new payment method shouldn't require editing the checkout flow.</div></div>
+      <div class="card"><div class="cl">L — Liskov Substitution</div><div class="ct">Subtypes must be substitutable</div><div class="cb">If Square extends Rectangle but breaks when you set width/height independently, you've violated LSP. Prefer composition. If you can't substitute without checking the type, the hierarchy is wrong.</div></div>
+      <div class="card"><div class="cl">I — Interface Segregation</div><div class="ct">No client depends on unused methods</div><div class="cb">Split fat interfaces. A ReadableStore and WritableStore beat one Store interface with 10 methods. Classes only implement what they use.</div></div>
+      <div class="card"><div class="cl">D — Dependency Inversion</div><div class="ct">Depend on abstractions</div><div class="cb">Business logic must not import the database driver directly. It depends on a repository interface. The concrete implementation is injected. This is what makes unit testing possible.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">DDD — Domain-Driven Design</div>
+    <div class="g4">
+      <div class="card purple"><div class="ct">Bounded Context</div><div class="cb">A semantic boundary where the domain model has a specific meaning. "Order" in shipping ≠ "Order" in billing. Don't share models across contexts.</div></div>
+      <div class="card purple"><div class="ct">Aggregate</div><div class="cb">Cluster of entities with one root (Aggregate Root). Consistency is enforced within the aggregate boundary. Cross-aggregate = eventual consistency only.</div></div>
+      <div class="card purple"><div class="ct">Domain Event</div><div class="cb">Something significant that happened in the domain: OrderPlaced, PaymentFailed. Past tense. Immutable fact. The basis of event sourcing.</div></div>
+      <div class="card purple"><div class="ct">Repository</div><div class="cb">Collection-like interface for persistence. Domain code never touches SQL. Inject the interface, not the ORM. Testable without a database.</div></div>
+      <div class="card purple"><div class="ct">Value Object</div><div class="cb">Immutable, identified by its values not identity. Money(100, USD) == Money(100, USD). No ID. Examples: Email, Money, Address, DateRange.</div></div>
+      <div class="card purple"><div class="ct">Context Map</div><div class="cb">Documents relationships between bounded contexts. Patterns: Shared Kernel, Customer-Supplier, Anti-Corruption Layer (protect your model from upstream chaos).</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Hexagonal Architecture (Ports &amp; Adapters)</div>
+    <div class="flow">
+      <div class="fs">Driving adapters (HTTP, CLI, gRPC)</div><div class="fa">→</div>
+      <div class="fs">Input Ports (Use Case interfaces)</div><div class="fa">→</div>
+      <div class="fs">Domain (pure business logic)</div><div class="fa">→</div>
+      <div class="fs">Output Ports (Repository interfaces)</div><div class="fa">→</div>
+      <div class="fs">Driven adapters (DB, queues, email)</div>
+    </div>
+    <div class="info"><div class="ih">// THE KEY RULE</div><p>The domain knows nothing about frameworks, databases, or HTTP. It only sees the port interfaces it defines. Everything external adapts to it — not the other way around. This makes the domain testable in pure unit tests with no infrastructure.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CQRS &amp; Event Sourcing</div>
+    <div class="g2">
+      <div class="card"><div class="ct">CQRS (Command Query Responsibility Segregation)</div><div class="cb">Separate write model (commands → events) from read model (optimized query projections). Commands change state. Queries return data. Different models, possibly different databases.</div></div>
+      <div class="card"><div class="ct">Event Sourcing</div><div class="cb">Store a log of domain events as the source of truth, not current state. Current state = replay of events. Free audit log. Time travel. Snapshots for performance. Kafka as the event log.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">2026 Reference Stack (multi-plane / ZTA-aligned)</div>
+    <div class="srow">
+      <div class="si"><span class="sk">Language</span><span class="sv" style="color:var(--cyan)">TypeScript (fullstack/monorepo) · Go (services, CLIs, systems) · Rust (perf-critical, embedded)</span></div>
+      <div class="si"><span class="sk">Runtime</span><span class="sv" style="color:var(--cyan)">Docker + Kubernetes (or Nomad) · Stateless OCI containers · Distroless base images</span></div>
+      <div class="si"><span class="sk">IaC</span><span class="sv" style="color:var(--cyan)">Terraform / OpenTofu · Pulumi (TypeScript IaC) · No ClickOps — ever</span></div>
+      <div class="si"><span class="sk">Config / Secrets</span><span class="sv" style="color:var(--cyan)">.env.local → CI secrets → HashiCorp Vault (prod) · Zero secrets in Git</span></div>
+      <div class="si"><span class="sk">Messaging</span><span class="sv" style="color:var(--cyan)">Kafka (durable streams) · RabbitMQ (task queues) · NATS (lightweight pub/sub)</span></div>
+      <div class="si"><span class="sk">Networking</span><span class="sv" style="color:var(--cyan)">Tailscale VPN · mTLS between services · Nginx Proxy Manager · Cloudflare</span></div>
+      <div class="si"><span class="sk">Dev Workflow</span><span class="sv" style="color:var(--cyan)">Trunk-based dev · Gitea (self-hosted) · Woodpecker CI · Spec-driven + AI-augmented</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 07 DATA LAYER -->
+<div class="section" id="s-data">
+  <div class="sec-head"><div class="sec-tag">// 07 · systems</div><div class="sec-title">Data <em>Layer</em></div><div class="sec-desc">Database selection matrix, ACID vs BASE, SQL isolation levels, indexing strategy, the N+1 problem, migration safety, and normalization.</div></div>
+  <div class="sub">
+    <div class="sub-head">Database Selection Matrix</div>
+    <table class="tbl"><tr><th>Need</th><th>Use</th><th>Avoid</th></tr>
+    <tr><td>Default relational</td><td style="color:var(--green)">PostgreSQL 16+</td><td>MySQL for net-new (lacks many PG features)</td></tr>
+    <tr><td>Caching / sessions / pub-sub</td><td style="color:var(--green)">Redis 7+ (or Dragonfly, KeyDB)</td><td>Memcached — Redis is strictly better</td></tr>
+    <tr><td>Full-text search</td><td style="color:var(--cyan)">Postgres FTS (small) → Meilisearch → Elasticsearch</td><td>Never use a search engine as primary DB</td></tr>
+    <tr><td>Time series / metrics</td><td style="color:var(--cyan)">TimescaleDB (PG extension) or InfluxDB 3</td><td>Vanilla Postgres — time-range perf degrades at scale</td></tr>
+    <tr><td>Document / flexible schema</td><td style="color:var(--cyan)">Postgres JSONB (first) → MongoDB</td><td>JSONB handles 90% of "document" needs without extra infra</td></tr>
+    <tr><td>Graph data</td><td style="color:var(--cyan)">Neo4j, Apache AGE (PG extension)</td><td>Simulating graphs in relational tables</td></tr>
+    <tr><td>Object / blob storage</td><td style="color:var(--amber)">MinIO (self-hosted) or AWS S3</td><td>Storing blobs in DB bytea — bloats tables, terrible perf</td></tr>
+    <tr><td>Message / event stream</td><td style="color:var(--amber)">Kafka (durable), RabbitMQ (task), Redis Streams</td><td>Polling a DB table as a queue — a classic anti-pattern</td></tr>
+    <tr><td>Embedded / local</td><td style="color:var(--purple)">SQLite (great), DuckDB (analytics)</td><td>Postgres for single-file embedded apps</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">ACID vs BASE</div>
+    <div class="g2">
+      <div class="card green"><div class="ct">ACID — Relational DBs</div><div class="cb"><strong style="color:var(--text)">A</strong>tomicity: all-or-nothing — the whole transaction commits or the whole thing rolls back.<br><strong style="color:var(--text)">C</strong>onsistency: DB always transitions between valid states per all constraints.<br><strong style="color:var(--text)">I</strong>solation: concurrent transactions don't see each other's in-progress work.<br><strong style="color:var(--text)">D</strong>urability: committed writes survive crashes (WAL + fsync).</div></div>
+      <div class="card amber"><div class="ct">BASE — Distributed NoSQL</div><div class="cb"><strong style="color:var(--text)">B</strong>asically Available: system always responds (may return stale data).<br><strong style="color:var(--text)">S</strong>oft state: state may change even without input (replication propagating).<br><strong style="color:var(--text)">E</strong>ventually consistent: all replicas will converge... eventually. Trades consistency for availability and partition tolerance.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SQL Isolation Levels</div>
+    <table class="tbl"><tr><th>Level</th><th>Dirty Read</th><th>Non-Repeatable Read</th><th>Phantom Read</th><th>Use</th></tr>
+    <tr><td>READ UNCOMMITTED</td><td style="color:var(--red)">Yes</td><td style="color:var(--red)">Yes</td><td style="color:var(--red)">Yes</td><td>Never — you read uncommitted garbage</td></tr>
+    <tr><td>READ COMMITTED</td><td style="color:var(--green)">No</td><td style="color:var(--red)">Yes</td><td style="color:var(--red)">Yes</td><td>PostgreSQL default. Good for most OLTP.</td></tr>
+    <tr><td>REPEATABLE READ</td><td style="color:var(--green)">No</td><td style="color:var(--green)">No</td><td style="color:var(--red)">Yes</td><td>MySQL InnoDB default. Consistent reads within transaction.</td></tr>
+    <tr><td>SERIALIZABLE</td><td style="color:var(--green)">No</td><td style="color:var(--green)">No</td><td style="color:var(--green)">No</td><td>Financial ledgers, inventory. Highest consistency. Slowest.</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Normalization</div>
+    <table class="tbl"><tr><th>Normal Form</th><th>Rule</th><th>Violation example</th></tr>
+    <tr><td>1NF</td><td>Atomic values, no repeating groups, unique rows</td><td>Storing "tag1,tag2,tag3" in one column</td></tr>
+    <tr><td>2NF</td><td>1NF + no partial dependencies (non-key attrs depend on whole PK)</td><td>In order_items(order_id, product_id, product_name) — product_name depends only on product_id</td></tr>
+    <tr><td>3NF</td><td>2NF + no transitive dependencies</td><td>Storing both zip_code and city — city depends on zip, not the row's PK</td></tr>
+    <tr><td>BCNF</td><td>Stronger 3NF — every determinant is a candidate key</td><td>Most practical schemas target 3NF/BCNF</td></tr>
+    <tr><td>Denormalization</td><td>Intentional duplication for read performance</td><td>Storing user_name on orders to avoid a join — acceptable when the join is a proven bottleneck</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Indexing Strategy</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>when and how to index</span><span class="lang">PostgreSQL</span></div>
+<pre><span class="c">-- ALWAYS index foreign keys and common WHERE/JOIN columns</span>
+<span class="k">CREATE INDEX ON</span> orders(user_id);          <span class="c">-- FK — prevents table scan on join</span>
+<span class="k">CREATE INDEX ON</span> users(email);             <span class="c">-- unique lookup</span>
+<span class="k">CREATE INDEX ON</span> events(created_at);       <span class="c">-- time-range queries</span>
+ 
+<span class="c">-- Partial index — smaller, faster for subset queries</span>
+<span class="k">CREATE INDEX ON</span> orders(status) <span class="k">WHERE</span> status = <span class="s">'pending'</span>;
+ 
+<span class="c">-- Composite index — column ORDER matters for selectivity and range scans</span>
+<span class="k">CREATE INDEX ON</span> orders(user_id, created_at);
+<span class="c">-- ↑ supports: WHERE user_id=? and WHERE user_id=? AND created_at&gt;?</span>
+<span class="c">-- ✗ does NOT support: WHERE created_at&gt;? alone</span>
+ 
+<span class="c">-- Covering index — include extra columns to avoid heap fetch</span>
+<span class="k">CREATE INDEX ON</span> orders(user_id) <span class="k">INCLUDE</span> (total, status);
+ 
+<span class="c">-- Diagnose slow queries:</span>
+<span class="k">EXPLAIN</span> (ANALYZE, BUFFERS, FORMAT TEXT) <span class="k">SELECT</span> ...;</pre></div>
+    <div class="alert"><div class="ah">// THE N+1 PROBLEM</div><p>Fetching a list of N users then making N separate queries to fetch each user's orders = N+1 queries. Fix: JOIN, subquery, or ORM eager loading (<code>include</code>/<code>preload</code>). Detectable with query logging. Always log slow queries in dev.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Safe Migration Strategy (Expand-Contract)</div>
+    <div class="flow">
+      <div class="fs">1. Expand: add new column (nullable)</div><div class="fa">→</div>
+      <div class="fs">2. Deploy app that writes to both old + new</div><div class="fa">→</div>
+      <div class="fs">3. Backfill existing rows</div><div class="fa">→</div>
+      <div class="fs">4. Deploy app that reads from new column</div><div class="fa">→</div>
+      <div class="fs">5. Contract: drop old column</div>
+    </div>
+    <div class="warn"><div class="wh">// NEVER run migration and app deploy simultaneously</div><p>Migration runs first. New code deploys after. Old code must work with new schema (backward compatible). Never add NOT NULL without a DEFAULT. Never rename a column in one step — add + copy + drop.</p></div>
+  </div>
+</div>
+
+<!-- 08 API DESIGN -->
+<div class="section" id="s-api">
+  <div class="sec-head"><div class="sec-tag">// 08 · systems</div><div class="sec-title">API <em>Design</em></div><div class="sec-desc">REST, GraphQL, gRPC, tRPC, WebSocket — when to use each, URL design, HTTP semantics, versioning, idempotency, rate limiting, and error standards.</div></div>
+  <div class="sub">
+    <div class="sub-head">Protocol Selection</div>
+    <table class="tbl"><tr><th>Protocol</th><th>Transport</th><th>Use when</th><th>Avoid when</th></tr>
+    <tr><td style="color:var(--cyan)">REST + JSON</td><td>HTTP/1.1+</td><td>Public APIs, external clients, cacheable resources</td><td>High-frequency internal calls, binary-heavy data</td></tr>
+    <tr><td style="color:var(--purple)">GraphQL</td><td>HTTP POST</td><td>Complex client data needs, multiple clients, rapid UI iteration</td><td>Simple CRUD, caching critical paths, public streaming API</td></tr>
+    <tr><td style="color:var(--green)">gRPC + Protobuf</td><td>HTTP/2</td><td>Internal service-to-service, streaming, low-bandwidth clients</td><td>Browser clients without grpc-web, public external API</td></tr>
+    <tr><td style="color:var(--amber)">tRPC</td><td>HTTP</td><td>Full-stack TypeScript monorepo — type-safe end-to-end, zero schema drift</td><td>External consumers, non-TypeScript clients</td></tr>
+    <tr><td style="color:var(--pink)">WebSocket</td><td>TCP (upgraded)</td><td>Real-time bidirectional: chat, live feeds, multiplayer</td><td>Simple request/response — overkill, hard to scale horizontally</td></tr>
+    <tr><td style="color:var(--blue)">SSE</td><td>HTTP</td><td>Server push only: live updates, progress, AI token streaming</td><td>Bidirectional communication needed</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">REST Design Rules</div>
+    <div class="g2">
+      <div class="card"><div class="ct">URL Structure</div><div class="cb">Nouns not verbs. Plural resources. Hierarchical for ownership.<br><code>/v1/users/:id/orders</code> ✓<br><code>/v1/getUserOrders</code> ✗<br>Max 2 levels of nesting. Deeper = wrong model.</div></div>
+      <div class="card"><div class="ct">HTTP Verb Semantics</div><div class="cb"><code>GET</code> — idempotent, cacheable, no body<br><code>POST</code> — create, not idempotent<br><code>PUT</code> — full replace, idempotent<br><code>PATCH</code> — partial update<br><code>DELETE</code> — idempotent (2nd call: 404 or 204)</div></div>
+    </div>
+    <div class="cb-wrap"><div class="cb-bar"><span>standard response envelopes</span><span class="lang">JSON</span></div>
+<pre><span class="c">// Success — list with cursor pagination</span>
+{ <span class="s">"data"</span>: [...], <span class="s">"pagination"</span>: { <span class="s">"next_cursor"</span>: <span class="s">"opaque-string"</span>, <span class="s">"has_more"</span>: true } }
+ 
+<span class="c">// Error — RFC 7807 Problem Details (use this standard)</span>
+{
+  <span class="s">"type"</span>: <span class="s">"https://errors.api.example.com/validation-error"</span>,
+  <span class="s">"title"</span>: <span class="s">"Validation Failed"</span>,
+  <span class="s">"status"</span>: 422,
+  <span class="s">"detail"</span>: <span class="s">"The request body contains invalid fields"</span>,
+  <span class="s">"errors"</span>: [{ <span class="s">"field"</span>: <span class="s">"email"</span>, <span class="s">"code"</span>: <span class="s">"INVALID_FORMAT"</span>, <span class="s">"message"</span>: <span class="s">"must be valid email"</span> }]
+}
+ 
+<span class="c">// Idempotency key — safe retries for POST/mutations</span>
+<span class="k">POST</span> /v1/payments
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000</pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">HTTP Status Code Reference</div>
+    <table class="tbl"><tr><th>Range</th><th>Meaning</th><th>Key codes</th></tr>
+    <tr><td style="color:var(--green)">2xx</td><td>Success</td><td>200 OK · 201 Created (return Location header) · 202 Accepted (async) · 204 No Content · 206 Partial Content</td></tr>
+    <tr><td style="color:var(--cyan)">3xx</td><td>Redirect</td><td>301 Moved Permanently · 302 Found (temp) · 304 Not Modified (ETag cache hit) · 307 Temp (keeps method) · 308 Perm (keeps method)</td></tr>
+    <tr><td style="color:var(--amber)">4xx</td><td>Client error</td><td>400 Bad Request · 401 Unauthenticated · 403 Forbidden · 404 Not Found · 409 Conflict · 410 Gone · 422 Unprocessable · 429 Too Many Requests</td></tr>
+    <tr><td style="color:var(--red)">5xx</td><td>Server error</td><td>500 Internal · 502 Bad Gateway · 503 Unavailable (with Retry-After) · 504 Gateway Timeout</td></tr></table>
+    <div class="alert"><div class="ah">// 401 vs 403 — most common confusion</div><p>401 = "Who are you?" — not authenticated, no/invalid token. 403 = "I know who you are, you just can't do this" — authenticated but not authorized. These are not interchangeable.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">API Versioning Strategies</div>
+    <div class="g3">
+      <div class="card"><div class="ct">URL versioning</div><div class="cb"><code>/v1/users</code> → <code>/v2/users</code>. Simple, explicit, cacheable. Most common for public APIs. Version in URL = easy to test in browser.</div></div>
+      <div class="card"><div class="ct">Header versioning</div><div class="cb"><code>Accept: application/vnd.api+json;version=2</code>. Keeps URLs clean. Harder to test, not cacheable without Vary header.</div></div>
+      <div class="card"><div class="ct">Sunset headers</div><div class="cb">Announce deprecation: <code>Sunset: Sat, 01 Jan 2027 00:00:00 GMT</code> and <code>Deprecation: true</code>. Give consumers 6–12 months notice.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 09 DISTRIBUTED SYSTEMS -->
+<div class="section" id="s-dist">
+  <div class="sec-head"><div class="sec-tag">// 09 · systems</div><div class="sec-title">Distributed <em>Systems</em></div><div class="sec-desc">The 8 fallacies, CAP theorem, consistency models, consensus (Raft), partitioning, replication, and the design patterns that make distributed systems survivable.</div></div>
+  <div class="sub">
+    <div class="sub-head">The 8 Fallacies of Distributed Computing</div>
+    <div class="g4">
+      <div class="card red"><div class="ct">The network is reliable</div><div class="cb">Packets drop. Links fail. Connections time out mid-request. Plan for it.</div></div>
+      <div class="card red"><div class="ct">Latency is zero</div><div class="cb">Same-DC: ~0.5ms. Cross-region: ~100ms. Chatty microservices kill you.</div></div>
+      <div class="card red"><div class="ct">Bandwidth is infinite</div><div class="cb">Serialize efficiently. Protobuf &gt;&gt; JSON. Don't send full objects when you need one field.</div></div>
+      <div class="card red"><div class="ct">The network is secure</div><div class="cb">Internal traffic must use mTLS too. Zero Trust. Anything on the wire can be read or modified.</div></div>
+      <div class="card red"><div class="ct">Topology doesn't change</div><div class="cb">Nodes die, IPs change, services autoscale. Use service discovery, not hardcoded IPs.</div></div>
+      <div class="card red"><div class="ct">There is one admin</div><div class="cb">Multiple teams own different parts. Agree on contracts (schema, SLA). No shared mutable state.</div></div>
+      <div class="card red"><div class="ct">Transport cost is zero</div><div class="cb">Serialization, connection setup, TLS handshakes, retries all cost real time and money.</div></div>
+      <div class="card red"><div class="ct">The network is homogeneous</div><div class="cb">Different services run on different hardware, OSes, and library versions.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CAP Theorem</div>
+    <div class="g2">
+      <div class="card"><div class="ct">CAP: Choose 2 of 3 during a partition</div><div class="cb"><strong style="color:var(--text)">C</strong>onsistency: every read returns the latest write (or an error).<br><strong style="color:var(--text)">A</strong>vailability: every request gets a response (no error, possibly stale).<br><strong style="color:var(--text)">P</strong>artition tolerance: system works despite network partition.<br><br>P is not optional — networks do partition. Real choice: <strong style="color:var(--cyan)">CP</strong> or <strong style="color:var(--amber)">AP</strong>.</div></div>
+      <div class="card"><div class="ct">Real-world examples</div><div class="cb"><span style="color:var(--cyan)">CP (prefer consistency)</span>: PostgreSQL, HBase, Zookeeper, etcd, CockroachDB<br><span style="color:var(--amber)">AP (prefer availability)</span>: Cassandra, CouchDB, DynamoDB (eventual), DNS<br><br>PACELC extends CAP: even without partition, there's a Latency vs Consistency tradeoff on every write.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Consistency Models (weakest → strongest)</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">Eventual</span><span class="sv">All replicas converge given no new writes. Reads may be stale. DNS updates, shopping carts, social media likes.</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">Read-your-writes</span><span class="sv">You always see your own writes. Other clients may not yet. Common safe default for user-facing apps.</span></div>
+      <div class="si"><span class="sk" style="color:var(--blue)">Monotonic reads</span><span class="sv">Once you read a value, you never read an older value. No time travel reads.</span></div>
+      <div class="si"><span class="sk" style="color:var(--purple)">Causal</span><span class="sv">Causally related operations seen in order by all. A reply always appears after the original comment.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Sequential</span><span class="sv">All processes see operations in the same order. Not necessarily real-time order.</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">Linearizable</span><span class="sv">Strongest. Every operation appears instantaneous. Very expensive. Used by etcd, Zookeeper for distributed locks.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Raft Consensus (used by etcd, CockroachDB, TiKV)</div>
+    <p class="body">Three states: Follower, Candidate, Leader. Leader election: follower times out → becomes candidate → sends RequestVote RPCs → gets majority → becomes leader. Log replication: leader appends entry → sends AppendEntries to followers → commits when majority acknowledge → applies to state machine. Quorum = ⌊n/2⌋ + 1. Always run an odd number of nodes (3 tolerates 1 failure, 5 tolerates 2 failures).</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Partitioning &amp; Replication</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Range Partitioning</div><div class="cb">Rows split by key range (A–M, N–Z or date ranges). Simple. Enables range queries. Hotspot risk if data is skewed — all writes go to the latest partition.</div></div>
+      <div class="card"><div class="ct">Hash Partitioning</div><div class="cb">hash(key) % N = partition. Uniform distribution. Kills range query ability. Consistent hashing minimizes reshuffling when adding/removing nodes (used by Cassandra, DynamoDB, CDNs).</div></div>
+      <div class="card"><div class="ct">Leader-Follower Replication</div><div class="cb">Leader handles writes, replicates to followers. Followers serve reads (possibly stale). Simple. Leader is a SPOF — needs failover automation (Patroni for Postgres).</div></div>
+      <div class="card"><div class="ct">Leaderless Replication</div><div class="cb">Any node accepts writes (quorum write W + quorum read R where W+R &gt; N). Dynamo-style. Cassandra. High availability. Conflict resolution needed (LWW or vector clocks).</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Distributed Design Patterns</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Circuit Breaker</div><div class="cb">Track failure rate. Open = fast-fail immediately (don't hammer a failing service). Half-open = probe if recovered. Closed = normal operation. Resilience4j, go-breaker.</div></div>
+      <div class="card"><div class="ct">Saga Pattern</div><div class="cb">Distributed transactions without 2PC. Sequence of local transactions, each publishing an event. Compensating transactions on failure. Choreography (events) vs Orchestration (central coordinator).</div></div>
+      <div class="card"><div class="ct">Outbox Pattern</div><div class="cb">Write to DB + outbox table in same transaction. Separate poller reads outbox and publishes to message broker. Guarantees exactly-once publishing even if app crashes.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 10 CONCURRENCY -->
+<div class="section" id="s-concur">
+  <div class="sec-head"><div class="sec-tag">// 10 · systems</div><div class="sec-title"><em>Concurrency</em> &amp; Parallelism</div><div class="sec-desc">Threads, mutexes, deadlocks, the actor model, async/await internals, Go concurrency patterns, and why data races are the most insidious class of bugs.</div></div>
+  <div class="sub">
+    <div class="sub-head">Concurrency vs Parallelism</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Concurrency</div><div class="cb">Multiple tasks making progress — possibly by interleaving on one core. About <em>structure and design</em>. You can have concurrency without parallelism (single-core async). Go goroutines, async/await, event loops.</div></div>
+      <div class="card purple"><div class="ct">Parallelism</div><div class="cb">Multiple tasks executing simultaneously on multiple CPU cores. About <em>physical execution</em>. Requires multiple cores. Data parallelism (SIMD) is parallelism without concurrency.</div></div>
+    </div>
+    <div class="info"><div class="ih">// ROB PIKE: "Concurrency is about dealing with lots of things at once. Parallelism is about doing lots of things at once."</div><p>Node.js is highly concurrent but (mostly) not parallel. Go is both concurrent AND parallel — goroutines are multiplexed onto GOMAXPROCS OS threads.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Synchronization Primitives</div>
+    <table class="tbl"><tr><th>Primitive</th><th>Guarantees</th><th>Use</th><th>Danger</th></tr>
+    <tr><td>Mutex</td><td>One goroutine/thread in critical section at a time</td><td>Protect shared mutable state</td><td>Deadlock if not released; contention degrades performance</td></tr>
+    <tr><td>RWMutex</td><td>Multiple concurrent readers OR one writer</td><td>Read-heavy shared state (config, caches)</td><td>Writer starvation if readers never pause</td></tr>
+    <tr><td>Semaphore</td><td>Allow at most N concurrent accesses</td><td>Connection pool limits, rate-limiting worker spawns</td><td>Forgetting to release on all exit paths</td></tr>
+    <tr><td>Condition Variable</td><td>Block until a condition becomes true, then signal/broadcast</td><td>Producer/consumer, bounded buffers</td><td>Spurious wakeups — always re-check condition in a loop</td></tr>
+    <tr><td>Channel (Go)</td><td>Communicate data between goroutines safely</td><td>"Don't share memory; communicate by sharing"</td><td>Deadlock if sender/receiver both block</td></tr>
+    <tr><td>Atomic ops</td><td>Lock-free read-modify-write on single machine word</td><td>Counters, flags, lock-free data structures</td><td>Cannot atomically coordinate across multiple variables</td></tr>
+    <tr><td>Once (sync.Once)</td><td>Execute a function exactly once across goroutines</td><td>Lazy singleton initialization</td><td>Panics in the function prevent future calls from succeeding</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Deadlock — The Four Coffman Conditions</div>
+    <div class="g4">
+      <div class="card red"><div class="ct">1. Mutual Exclusion</div><div class="cb">At least one resource held in non-sharable mode.</div></div>
+      <div class="card red"><div class="ct">2. Hold and Wait</div><div class="cb">Process holding a resource is waiting to acquire more.</div></div>
+      <div class="card red"><div class="ct">3. No Preemption</div><div class="cb">Resources can't be forcibly taken — only voluntarily released.</div></div>
+      <div class="card red"><div class="ct">4. Circular Wait</div><div class="cb">A → waits for B → waits for A. Break by imposing a global lock ordering.</div></div>
+    </div>
+    <div class="alert"><div class="ah">// PREVENTION: always acquire locks in the same global order</div><p>If every code path acquires mutex_A before mutex_B, circular wait is impossible. Use <code>go test -race</code> and <code>go vet</code> to detect data races. ThreadSanitizer (TSan) for C++. These catch entire classes of concurrency bugs before prod.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Go Concurrency Patterns</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>practical Go patterns</span><span class="lang">Go</span></div>
+<pre><span class="c">// WORKER POOL — bound goroutine count</span>
+jobs := make(<span class="k">chan</span> Job, 100)
+<span class="k">var</span> wg sync.WaitGroup
+<span class="k">for</span> i := 0; i &lt; numWorkers; i++ {
+    wg.Add(1)
+    <span class="k">go func</span>() {
+        <span class="k">defer</span> wg.Done()
+        <span class="k">for</span> j := <span class="k">range</span> jobs { process(j) }
+    }()
+}
+<span class="k">for</span> _, job := <span class="k">range</span> allJobs { jobs &lt;- job }
+close(jobs); wg.Wait()
+ 
+<span class="c">// CONTEXT CANCELLATION — propagate cancellation tree</span>
+ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+<span class="k">defer</span> cancel() <span class="c">// ALWAYS defer cancel</span>
+<span class="k">select</span> {
+    <span class="k">case</span> result := &lt;-workCh: handle(result)
+    <span class="k">case</span> &lt;-ctx.Done(): <span class="k">return</span> ctx.Err()
+}
+ 
+<span class="c">// ERRGROUP — coordinate goroutines with error propagation</span>
+g, ctx := errgroup.WithContext(ctx)
+<span class="k">for</span> _, url := <span class="k">range</span> urls {
+    url := url <span class="c">// capture loop var</span>
+    g.Go(<span class="k">func</span>() error { <span class="k">return</span> fetch(ctx, url) })
+}
+<span class="k">if</span> err := g.Wait(); err != nil { <span class="k">return</span> err }</pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Async/Await Internals (JavaScript)</div>
+    <div class="g2">
+      <div class="card"><div class="ct">How it works</div><div class="cb">async/await is syntactic sugar over Promises over the event loop. An <code>await</code> suspends the current async function and yields back to the event loop. The microtask queue picks it up when the Promise resolves. No new thread is created.</div></div>
+      <div class="card"><div class="ct">Common pitfall: sequential awaits</div><div class="cb"><code>await a(); await b();</code> runs serially — total time = a + b. Use <code>await Promise.all([a(), b()])</code> for parallel — total time = max(a, b). One of the most common performance bugs in Node.js code.</div></div>
+    </div>
+  </div>
+</div>

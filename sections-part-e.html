@@ -1,0 +1,197 @@
+<!-- 16 SECURITY (ZTA) -->
+<div class="section" id="s-security">
+  <div class="sec-head"><div class="sec-tag">// 16 · security</div><div class="sec-title">Security &amp; <em>Zero Trust</em></div><div class="sec-desc">Assume breach: verify explicitly, least privilege, and defense in depth — from identity to workload to data at rest.</div></div>
+  <div class="sub">
+    <div class="sub-head">Zero Trust Principles</div>
+    <div class="g2">
+      <div class="card red"><div class="ct">Never trust the network</div><div class="cb">mTLS between services. No "trusted internal VLAN" — lateral movement is the attacker's goal after one phished laptop.</div></div>
+      <div class="card green"><div class="ct">Verify every request</div><div class="cb">OIDC/OAuth2 for users, SPIFFE/SPIRE or cloud IAM for workloads. Short-lived tokens. RBAC + ABAC where needed.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">OWASP Top Risks (web)</div>
+    <table class="tbl"><tr><th>Risk</th><th>Mitigation</th></tr>
+    <tr><td>Injection (SQL, command)</td><td>Parameterized queries; never concatenate user input into shell</td></tr>
+    <tr><td>Broken access control</td><td>Authorize every route — IDOR checks (user owns resource)</td></tr>
+    <tr><td>SSRF</td><td>Block internal IPs from user-supplied URLs; allowlists</td></tr>
+    <tr><td>XSS</td><td>Context-aware escaping; CSP headers; avoid <code>dangerouslySetInnerHTML</code></td></tr>
+    <tr><td>CSRF</td><td>SameSite cookies + anti-CSRF tokens for state-changing requests</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Dependency &amp; Supply Chain</div>
+    <p class="body">Lockfiles, SBOM (CycloneDX), signed images (cosign), Dependabot/Renovate, and review before merging major upgrades. SLSA levels describe build integrity.</p>
+  </div>
+</div>
+
+<!-- 17 CRYPTOGRAPHY -->
+<div class="section" id="s-crypto">
+  <div class="sec-head"><div class="sec-tag">// 17 · security</div><div class="sec-title"><em>Cryptography</em></div><div class="sec-desc">Use libraries — never roll your own primitives. Know what to use for hashing, encryption, and key exchange.</div></div>
+  <div class="sub">
+    <div class="sub-head">Building Blocks</div>
+    <table class="tbl"><tr><th>Need</th><th>Use</th><th>Avoid</th></tr>
+    <tr><td>Password storage</td><td>Argon2id, scrypt, bcrypt (with adequate work factor)</td><td>MD5, SHA-256 alone</td></tr>
+    <tr><td>Symmetric encryption</td><td>AES-GCM or ChaCha20-Poly1305</td><td>AES-ECB, CBC without auth</td></tr>
+    <tr><td>Asymmetric</td><td>Ed25519, X25519, ECDSA P-256 (well-configured)</td><td>RSA with PKCS#1 v1.5 padding for new systems</td></tr>
+    <tr><td>Integrity</td><td>HMAC-SHA256 or keyed BLAKE2</td><td>Plain SHA for message auth</td></tr>
+    <tr><td>Randomness</td><td>OS CSPRNG (<code>/dev/urandom</code>, <code>crypto.randomBytes</code>)</td><td>Math.random, timestamps</td></tr></table>
+    <div class="info"><div class="ih">// AEAD</div><p>Authenticated encryption (GCM, ChaPoly) gives confidentiality + integrity in one API — prevents bit-flipping attacks.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">TLS</div>
+    <p class="body">TLS 1.2+ only; prefer TLS 1.3. Certificate pinning only when you control clients. HSTS after HTTPS is stable. Never mixed content.</p>
+  </div>
+</div>
+
+<!-- 18 AI COLLABORATION -->
+<div class="section" id="s-ai">
+  <div class="sec-head"><div class="sec-tag">// 18 · security &amp; ai</div><div class="sec-title">AI <em>Collaboration</em></div><div class="sec-desc">How to pair with LLMs safely: context windows, prompt hygiene, verification, and keeping secrets out of prompts.</div></div>
+  <div class="sub">
+    <div class="sub-head">Effective Practices</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Ground truth</div><div class="cb">Paste relevant files, error messages, and constraints. Vague prompts get plausible garbage.</div></div>
+      <div class="card purple"><div class="ct">Verify everything</div><div class="cb">Run tests, read diffs, check security implications. Models optimize for plausibility, not correctness.</div></div>
+      <div class="card amber"><div class="ct">No secrets in prompts</div><div class="cb">Treat vendor APIs as untrusted for retention. Use env vars locally; redact in examples.</div></div>
+      <div class="card green"><div class="ct">Iterative refinement</div><div class="cb">Small steps: generate interface → implement → test → fix. Better than one-shot mega-prompts.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Risks</div>
+    <ul class="rlist">
+      <li><i>·</i><strong>Hallucinated APIs</strong> — always check docs for functions that don't exist.</li>
+      <li><i>·</i><strong>License</strong> — generated code may resemble training data; review for compliance.</li>
+      <li><i>·</i><strong>Prompt injection</strong> — untrusted content in RAG or user messages can override instructions.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 19 ML FUNDAMENTALS -->
+<div class="section" id="s-ml">
+  <div class="sec-head"><div class="sec-tag">// 19 · security &amp; ai</div><div class="sec-title">ML <em>Fundamentals</em></div><div class="sec-desc">Supervised vs unsupervised, bias/variance, evaluation metrics, and operational concerns for models in production.</div></div>
+  <div class="sub">
+    <div class="sub-head">Learning Paradigms</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Supervised</div><div class="cb">Labeled data: classification, regression. Train/validation/test split — never tune on test set.</div></div>
+      <div class="card"><div class="ct">Unsupervised</div><div class="cb">Clustering, dimensionality reduction — no labels; interpret carefully.</div></div>
+      <div class="card"><div class="ct">Reinforcement</div><div class="cb">Agent + environment + reward — expensive to sample; safety critical in robotics.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Metrics</div>
+    <table class="tbl"><tr><th>Task</th><th>Metrics</th></tr>
+    <tr><td>Classification</td><td>Precision, recall, F1, ROC-AUC — pick based on cost of FP vs FN</td></tr>
+    <tr><td>Regression</td><td>MAE, RMSE, MAPE — outliers dominate RMSE</td></tr>
+    <tr><td>Ranking</td><td>NDCG, MRR</td></tr></table>
+    <div class="warn"><div class="wh">// DATA DRIFT</div><p>Production distribution shifts — monitor input and output distributions; retrain or recalibrate on schedule.</p></div>
+  </div>
+</div>
+
+<!-- 20 FRONTEND SYSTEMS -->
+<div class="section" id="s-fe">
+  <div class="sec-head"><div class="sec-tag">// 20 · frontend</div><div class="sec-title">Frontend <em>Systems</em></div><div class="sec-desc">Browser rendering pipeline, critical rendering path, hydration, and performance budgets for real users on slow devices.</div></div>
+  <div class="sub">
+    <div class="sub-head">Rendering Pipeline (simplified)</div>
+    <div class="flow"><span class="fs">HTML</span><span class="fa">→</span><span class="fs">DOM</span><span class="fa">→</span><span class="fs">CSSOM</span><span class="fa">→</span><span class="fs">Render tree</span><span class="fa">→</span><span class="fs">Layout</span><span class="fa">→</span><span class="fs">Paint</span><span class="fa">→</span><span class="fs">Composite</span></div>
+    <p class="body">JS can block parsing (unless <code>defer</code>/<code>async</code>). Large layout thrashing = read/write/read DOM in a loop — batch reads then writes.</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Web Vitals (Core)</div>
+    <div class="srow">
+      <div class="si"><span class="sk">LCP</span><span class="sv">Largest Contentful Paint — loading performance. Target &lt;2.5s.</span></div>
+      <div class="si"><span class="sk">INP</span><span class="sv">Interaction to Next Paint — responsiveness. Target &lt;200ms.</span></div>
+      <div class="si"><span class="sk">CLS</span><span class="sv">Cumulative Layout Shift — visual stability. Target &lt;0.1.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SPA / SSR / SSG</div>
+    <div class="g2">
+      <div class="card"><div class="ct">CSR</div><div class="cb">Client renders — fast navigations after load, poor first paint without care.</div></div>
+      <div class="card"><div class="ct">SSR</div><div class="cb">Server sends HTML — good SEO and FCP; cost per request.</div></div>
+      <div class="card"><div class="ct">SSG</div><div class="cb">Pre-render at build — best for content; rebuild on change.</div></div>
+      <div class="card"><div class="ct">Hydration</div><div class="cb">Attach event listeners to server HTML — mismatch = bugs and double work; partial hydration reduces cost.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 21 LANGUAGE THEORY -->
+<div class="section" id="s-lang">
+  <div class="sec-head"><div class="sec-tag">// 21 · frontend &amp; language</div><div class="sec-title">Language <em>Theory</em></div><div class="sec-desc">Chomsky hierarchy, parsing strategies, and how type systems catch bugs at compile time.</div></div>
+  <div class="sub">
+    <div class="sub-head">Chomsky Hierarchy</div>
+    <table class="tbl"><tr><th>Type</th><th>Grammar</th><th>Automaton</th><th>Example</th></tr>
+    <tr><td>Type 3 — Regular</td><td>Finite</td><td>Finite state machine</td><td>Keywords, lex tokens</td></tr>
+    <tr><td>Type 2 — Context-free</td><td>Pushdown</td><td>PDA</td><td>Most programming syntax</td></tr>
+    <tr><td>Type 1 — Context-sensitive</td><td>Linear-bounded</td><td>Linear bounded automaton</td><td>Rarer in PL design</td></tr>
+    <tr><td>Type 0 — Unrestricted</td><td>Turing-complete</td><td>Turing machine</td><td>Template metaprogramming, macros</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Type Systems</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Static vs dynamic</div><div class="cb">Static: errors before run (with soundness caveats). Dynamic: flexibility, runtime type tags.</div></div>
+      <div class="card"><div class="ct">Structural vs nominal</div><div class="cb">TypeScript: structural — shape matters. Java: nominal — name matters.</div></div>
+      <div class="card"><div class="ct">Variance</div><div class="cb">Covariance/contravariance in generics — function params often contravariant; returns covariant.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 22 COMPILERS -->
+<div class="section" id="s-compilers">
+  <div class="sec-head"><div class="sec-tag">// 22 · frontend &amp; language</div><div class="sec-title"><em>Compilers</em></div><div class="sec-desc">Lexing, parsing, IR, optimization, and codegen — the pipeline from source text to machine code.</div></div>
+  <div class="sub">
+    <div class="sub-head">Phases</div>
+    <div class="flow"><span class="fs">Lexer</span><span class="fa">→</span><span class="fs">Parser</span><span class="fa">→</span><span class="fs">AST</span><span class="fa">→</span><span class="fs">Semantic analysis</span><span class="fa">→</span><span class="fs">IR</span><span class="fa">→</span><span class="fs">Optimize</span><span class="fa">→</span><span class="fs">Codegen</span></div>
+    <p class="body">Lexer: regex → tokens. Parser: CFG → AST (LL, LR, PEG). SSA form enables many optimizations (constant folding, dead code elimination).</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">JIT vs AOT</div>
+    <div class="g2">
+      <div class="card"><div class="ct">AOT</div><div class="cb">Compile before run — predictable startup, native binaries (Go, Rust).</div></div>
+      <div class="card"><div class="ct">JIT</div><div class="cb">Profile-guided optimization at runtime — JVM, V8. Warmup latency, peak performance.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 23 DESIGN PATTERNS -->
+<div class="section" id="s-design">
+  <div class="sec-head"><div class="sec-tag">// 23 · reference</div><div class="sec-title">Design <em>Patterns</em></div><div class="sec-desc">GoF classics and architectural patterns — vocabulary for structure, not an excuse for over-engineering.</div></div>
+  <div class="sub">
+    <div class="sub-head">GoF (selected)</div>
+    <table class="tbl"><tr><th>Pattern</th><th>Intent</th></tr>
+    <tr><td>Strategy</td><td>Family of interchangeable algorithms</td></tr>
+    <tr><td>Observer</td><td>Notify dependents of state changes</td></tr>
+    <tr><td>Factory</td><td>Encapsulate object creation</td></tr>
+    <tr><td>Adapter</td><td>Wrap incompatible interfaces</td></tr>
+    <tr><td>Decorator</td><td>Add behavior without subclass explosion</td></tr>
+    <tr><td>Singleton</td><td>One instance — often an antipattern in testable code; prefer DI</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Architectural</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Layered</div><div class="cb">Presentation → domain → data — clear boundaries, watch for leaky abstractions.</div></div>
+      <div class="card"><div class="ct">Hexagonal</div><div class="cb">Ports and adapters — domain core independent of DB/UI.</div></div>
+      <div class="card"><div class="ct">Event-driven</div><div class="cb">Loose coupling via messages — eventual consistency, ordering complexity.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 24 GOLDEN RULES -->
+<div class="section" id="s-rules">
+  <div class="sec-head"><div class="sec-tag">// 24 · reference</div><div class="sec-title"><em>Golden</em> Rules</div><div class="sec-desc">Short principles worth internalizing — the checklist before you ship, refactor, or declare victory.</div></div>
+  <div class="sub">
+    <div class="sub-head">Ship</div>
+    <div class="grule"><div class="gr-num">01</div><div class="gr-text">Make it work, make it right, make it fast — in that order.</div><div class="gr-why">Optimization without correctness is waste.</div></div>
+    <div class="grule"><div class="gr-num">02</div><div class="gr-text">The database is the hardest thing to change — design schemas with migrations in mind.</div><div class="gr-why">Backward-compatible deploys require expand-contract patterns.</div></div>
+    <div class="grule"><div class="gr-num">03</div><div class="gr-text">Observability is not optional — if you cannot measure it, you cannot fix it at 3am.</div><div class="gr-why">Metrics, logs, traces — pick a stack and instrument consistently.</div></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Safety</div>
+    <div class="grule"><div class="gr-num">04</div><div class="gr-text">Never trust input — validate at boundaries, encode on output.</div><div class="gr-why">XSS, injection, and SSRF all start with trusting the wrong bytes.</div></div>
+    <div class="grule"><div class="gr-num">05</div><div class="gr-text">Least privilege everywhere — humans, services, and CI tokens.</div><div class="gr-why">Blast radius limits when credentials leak.</div></div>
+    <div class="grule"><div class="gr-num">06</div><div class="gr-text">Secrets belong in vaults and env at runtime — never in repos or images.</div><div class="gr-why">Git history is forever.</div></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Collaboration</div>
+    <div class="grule"><div class="gr-num">07</div><div class="gr-text">Small PRs, clear commits, tests that fail for the right reason.</div><div class="gr-why">Review quality drops with diff size.</div></div>
+    <div class="grule"><div class="gr-num">08</div><div class="gr-text">Document decisions (ADR) — future you will not remember the tradeoff.</div><div class="gr-why">Context beats heroic recall.</div></div>
+    <div class="info"><div class="ih">// TL;DR</div><p>Correctness first, security by default, observable systems, kind code reviews. Everything else is commentary.</p></div>
+  </div>
+</div>

@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Comprehensive 2026 engineering reference: CS fundamentals, systems architecture, security, AI collaboration, and golden rules for production software.">
+<meta name="theme-color" content="#08080e">
+<title>2026 Engineering Reference — Complete Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar" id="sidebar" aria-label="Section navigation">
+  <div class="sb-header">
+    <div class="sb-logo"><span>Dev</span>Ref</div>
+    <div class="sb-version">2026 · Complete Edition · v3.0</div>
+  </div>
+  <div class="sb-search"><input type="search" id="sbSearch" placeholder="search sections..." autocomplete="off" aria-label="Filter sections"></div>
+  <nav id="sbNav" aria-label="Reference sections"></nav>
+</aside>
+<div class="main">
+<div class="topbar">
+  <div class="tb-path">devref / <span id="curPath">overview</span></div>
+  <div class="tb-badges"><span class="tb-badge live">v3.0</span><span class="tb-badge">25 sections</span><span class="tb-badge">Every CS course</span></div>
+</div>
+<div class="mobile-nav-wrap">
+  <label for="mobileNav" class="sr-only">Jump to section</label>
+  <select id="mobileNav" class="mobile-nav" aria-label="Jump to section"></select>
+</div>
+<main class="page" id="main-content">
+<!-- 00 OVERVIEW -->
+<div class="section active" id="s-home">
+  <div class="sec-head">
+    <div class="sec-tag">// engineering reference · complete edition · 2026</div>
+    <div class="sec-title">The Complete <em>2026 Dev Reference</em></div>
+    <div class="sec-desc">Every CS course. Every system concept. Every engineering discipline — in one document. Built for engineers transitioning from writing code to orchestrating systems.</div>
+  </div>
+  <div class="g3">
+    <a href="#cs" class="card cyan card-link js-nav-card" data-nav="cs"><div class="cl">Sections 01–05</div><div class="ct">Foundations</div><div class="cb">CS fundamentals, data structures, algorithms, OS internals, networking. The bedrock every system is built on.</div></a>
+    <a href="#arch" class="card purple card-link js-nav-card" data-nav="arch"><div class="cl">Sections 06–10</div><div class="ct">Systems</div><div class="cb">Architecture, data layer, API design, distributed systems, concurrency. How production systems are actually designed.</div></a>
+    <a href="#env" class="card amber card-link js-nav-card" data-nav="env"><div class="cl">Sections 11–15</div><div class="ct">Engineering</div><div class="cb">Environment, testing, CI/CD, performance, observability. The workflow that turns code into reliable software.</div></a>
+    <a href="#security" class="card red card-link js-nav-card" data-nav="security"><div class="cl">Sections 16–19</div><div class="ct">Security &amp; AI</div><div class="cb">ZTA, cryptography, AI-native dev workflow, ML fundamentals. The non-negotiable safety and intelligence layer.</div></a>
+    <a href="#fe" class="card green card-link js-nav-card" data-nav="fe"><div class="cl">Sections 20–22</div><div class="ct">Frontend &amp; Language</div><div class="cb">Browser internals, render pipeline, type systems, compilers. What happens below your framework.</div></a>
+    <a href="#design" class="card blue card-link js-nav-card" data-nav="design"><div class="cl">Sections 23–24</div><div class="ct">Reference</div><div class="cb">GoF design patterns, architectural patterns, and the Golden Rules you tape to your monitor.</div></a>
+  </div>
+  <div class="info"><div class="ih">// HOW TO USE</div><p>Navigate via the sidebar. Search to filter. Each section is self-contained. The Golden Rules (24) is the TL;DR. The sidebar search filters section titles in real time.</p></div>
+</div>
+<!-- 01 CS FUNDAMENTALS -->
+<div class="section" id="s-cs">
+  <div class="sec-head"><div class="sec-tag">// 01 · foundations</div><div class="sec-title">CS <em>Fundamentals</em></div><div class="sec-desc">Number systems, binary arithmetic, Boolean logic, memory hierarchy, CPU architecture, and the ideas every working system is built on top of.</div></div>
+  <div class="sub">
+    <div class="sub-head">Number Systems</div>
+    <table class="tbl"><tr><th>System</th><th>Base</th><th>Digits</th><th>Example (=10)</th><th>Use</th></tr>
+    <tr><td>Binary</td><td>2</td><td>0,1</td><td><code>1010</code></td><td>CPU, memory, bitwise ops</td></tr>
+    <tr><td>Octal</td><td>8</td><td>0–7</td><td><code>012</code></td><td>Unix file permissions (chmod 755)</td></tr>
+    <tr><td>Decimal</td><td>10</td><td>0–9</td><td><code>10</code></td><td>Human-readable</td></tr>
+    <tr><td>Hexadecimal</td><td>16</td><td>0–9, A–F</td><td><code>0xA</code></td><td>Memory addresses, colors, hashes</td></tr></table>
+    <div class="g2">
+      <div class="card"><div class="ct">Two's Complement</div><div class="cb">How CPUs represent negative integers. Negate = flip all bits + 1. 8-bit range: -128 to 127. Overflow wraps silently — INT_MAX + 1 = INT_MIN. This is a real bug source.</div></div>
+      <div class="card"><div class="ct">IEEE 754 Float</div><div class="cb">32-bit: sign(1) + exponent(8) + mantissa(23). 0.1 + 0.2 ≠ 0.3. Never use floats for money. Use integer cents, Decimal, or BigDecimal. Infinity and NaN are valid float values.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Boolean Logic &amp; Bitwise Tricks</div>
+    <table class="tbl"><tr><th>Gate</th><th>Truth</th><th>Code</th><th>Use</th></tr>
+    <tr><td>AND ∧</td><td>1 only if both 1</td><td><code>a &amp; b</code></td><td>Masking bits, checking flags</td></tr>
+    <tr><td>OR ∨</td><td>1 if either 1</td><td><code>a | b</code></td><td>Setting flags</td></tr>
+    <tr><td>NOT ¬</td><td>Flips every bit</td><td><code>~a</code></td><td>Complement, clearing masks</td></tr>
+    <tr><td>XOR ⊕</td><td>1 if different</td><td><code>a ^ b</code></td><td>Toggle bits, swap without temp, find unique element</td></tr>
+    <tr><td>NAND ↑</td><td>NOT(AND) — universal gate</td><td><code>~(a &amp; b)</code></td><td>All logic can be built from NAND alone</td></tr></table>
+    <div class="cb-wrap"><div class="cb-bar"><span>essential bit tricks</span><span class="lang">C / Go / TypeScript</span></div>
+<pre><span class="n">n &amp; (n-1)</span>   <span class="c">// clear lowest set bit. n &amp; (n-1) == 0 means n is power of 2</span>
+<span class="n">n | (1&lt;&lt;k)</span>  <span class="c">// set bit k</span>
+<span class="n">n &amp; ~(1&lt;&lt;k)</span> <span class="c">// clear bit k</span>
+<span class="n">n ^ (1&lt;&lt;k)</span>  <span class="c">// toggle bit k</span>
+<span class="n">(n&gt;&gt;k)&amp;1</span>   <span class="c">// read bit k</span>
+<span class="n">n &amp; -n</span>      <span class="c">// isolate lowest set bit</span>
+<span class="n">lo + ((hi-lo)&gt;&gt;1)</span> <span class="c">// safe midpoint (no overflow)</span></pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Memory Hierarchy (Latency)</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">CPU Registers</span><span class="sv">~0.3ns · bytes · inside the CPU core</span><span class="sr">fastest</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">L1 Cache</span><span class="sv">~1ns · 32–64KB per core · split Instruction + Data cache</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">L2 Cache</span><span class="sv">~4ns · 256KB–1MB per core</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">L3 Cache</span><span class="sv">~10ns · 4–64MB shared between cores</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">RAM (DRAM)</span><span class="sv">~100ns · GBs · main memory · 100x slower than L1</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">NVMe SSD</span><span class="sv">~100µs · TBs · 1000x slower than RAM</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">HDD</span><span class="sv">~10ms · TBs · 100x slower than NVMe</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">Network (DC)</span><span class="sv">~0.5ms same datacenter · ~100ms cross-continent</span><span class="sr">slowest</span></div>
+    </div>
+    <div class="warn"><div class="wh">// CACHE LOCALITY MATTERS</div><p>Sequential memory access (arrays) is 10–100x faster than random access (linked lists) because the CPU prefetcher can predict and pre-load the next cache line. Always prefer arrays over linked lists unless you truly need O(1) insert/delete.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CPU Architecture Essentials</div>
+    <div class="g4">
+      <div class="card cyan"><div class="ct">Control Unit</div><div class="cb">Fetch → Decode → Execute cycle. Manages program counter. Modern CPUs pipeline, speculate, and reorder instructions out-of-order.</div></div>
+      <div class="card cyan"><div class="ct">ALU</div><div class="cb">Arithmetic Logic Unit. Integer math and comparisons. FPU handles floating point. SIMD units process multiple values in parallel (AVX, NEON).</div></div>
+      <div class="card cyan"><div class="ct">Virtual Memory</div><div class="cb">OS illusion: every process sees a full address space. MMU translates virtual → physical via page tables. Page fault = load from disk.</div></div>
+      <div class="card cyan"><div class="ct">Interrupts</div><div class="cb">Hardware signals the CPU to pause and handle I/O, timer events, or exceptions. IRQ priority. Context save/restore on every interrupt.</div></div>
+    </div>
+  </div>
+</div>
+<!-- 02 DATA STRUCTURES -->
+<div class="section" id="s-ds">
+  <div class="sec-head"><div class="sec-tag">// 02 · foundations</div><div class="sec-title">Data <em>Structures</em></div><div class="sec-desc">Every data structure with time/space complexity, use cases, and the mental model for choosing the right one. Knowing when NOT to use a hash map matters as much as knowing how.</div></div>
+  <div class="sub">
+    <div class="sub-head">Complexity Reference</div>
+    <table class="tbl"><tr><th>Structure</th><th>Access</th><th>Search</th><th>Insert</th><th>Delete</th><th>Space</th></tr>
+    <tr><td>Array / Slice</td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Linked List</td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Hash Table</td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>BST (balanced)</td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Heap</td><td><span class="big-O o1">O(1)peak</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Stack / Queue</td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Trie</td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on2">O(n·k)</span></td></tr>
+    <tr><td>Union-Find (DSU)</td><td>—</td><td><span class="big-O o1">O(α(n))</span></td><td><span class="big-O o1">O(α(n))</span></td><td>—</td><td><span class="big-O on">O(n)</span></td></tr></table>
+    <p class="body">k = key length. α = inverse Ackermann (nearly constant). avg = amortized. Hash worst-case O(n) on collisions.</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">When to Use Which</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Array</div><div class="cb">Default choice. Sequential access, cache-friendly, O(1) index. Bad for mid-array insert. Use when size is known or growth is appended.</div></div>
+      <div class="card"><div class="ct">Hash Map</div><div class="cb">O(1) lookup by key. Frequency counting, deduplication, memoization. Bad for range queries, ordered iteration, or tight memory.</div></div>
+      <div class="card"><div class="ct">Stack</div><div class="cb">LIFO. Undo/redo, call stack simulation, bracket matching, DFS iteratively, expression evaluation (shunting-yard).</div></div>
+      <div class="card"><div class="ct">Queue / Deque</div><div class="cb">FIFO. BFS, task queues, sliding window maximum (monotonic deque — extremely useful for interview problems).</div></div>
+      <div class="card"><div class="ct">Heap (Priority Queue)</div><div class="cb">Always need min or max fast. K largest elements, Dijkstra, event scheduling. Min-heap: parent ≤ children.</div></div>
+      <div class="card"><div class="ct">Trie</div><div class="cb">Prefix search, autocomplete, spell checking, IP routing. O(k) ops where k = key length. Faster than hash for prefix operations.</div></div>
+      <div class="card"><div class="ct">Balanced BST</div><div class="cb">Ordered data with O(log n) everything. Range queries, floor/ceiling. Java TreeMap, C++ std::map, Python sortedcontainers.</div></div>
+      <div class="card"><div class="ct">Union-Find (DSU)</div><div class="cb">Connected components, cycle detection, Kruskal MST. Path compression + union by rank = nearly O(1) amortized. Elegant for graph problems.</div></div>
+      <div class="card"><div class="ct">Segment Tree</div><div class="cb">Range queries + range updates in O(log n). Sum, min, max over any interval. More complex than BIT but more powerful.</div></div>
+      <div class="card"><div class="ct">Fenwick Tree (BIT)</div><div class="cb">Range sum queries + point updates. Simpler than Segment Tree for these specific operations. O(log n), minimal code.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Hash Table Internals</div>
+    <div class="g2">
+      <div class="card amber"><div class="ct">Open Addressing</div><div class="cb">Collision → probe next slot (linear, quadratic, double hashing). Better cache locality, no extra allocation. Load factor must stay &lt;0.7. Python dict uses this.</div></div>
+      <div class="card amber"><div class="ct">Separate Chaining</div><div class="cb">Collision → linked list (or tree) at slot. Java HashMap — switches to Red-Black tree at 8+ entries per bucket. Load factor can exceed 1.0.</div></div>
+    </div>
+    <div class="info"><div class="ih">// HASH FUNCTION QUALITY</div><p>Bad hash = clustering. Good choices: MurmurHash3 (fast, non-cryptographic), xxHash (fastest), SipHash (DoS-resistant, used by Rust HashMap and Python 3.3+). Never use identity hash for user input — enables hash-flooding DoS attacks where an attacker crafts keys that all collide.</p></div>
+  </div>
+</div>
+
+<!-- 03 ALGORITHMS -->
+<div class="section" id="s-algo">
+  <div class="sec-head"><div class="sec-tag">// 03 · foundations</div><div class="sec-title"><em>Algorithms</em> &amp; Complexity</div><div class="sec-desc">Sorting, searching, graph traversal, dynamic programming, greedy algorithms, and the mental models for analyzing any algorithm you encounter.</div></div>
+  <div class="sub">
+    <div class="sub-head">Big-O Mental Model</div>
+    <div class="g4">
+      <div class="card green"><div class="ct" style="font-size:1.3rem">O(1)</div><div class="cb">Array index, hash lookup, stack push. Constant — doesn't grow with input size.</div></div>
+      <div class="card cyan"><div class="ct" style="font-size:1.3rem">O(log n)</div><div class="cb">Binary search, balanced BST. Double input = +1 step. Extremely fast for large n.</div></div>
+      <div class="card blue"><div class="ct" style="font-size:1.3rem">O(n)</div><div class="cb">Single loop, linear scan. Minimum for reading all input.</div></div>
+      <div class="card purple"><div class="ct" style="font-size:1.3rem">O(n log n)</div><div class="cb">Merge sort, heap sort. Optimal for comparison-based sorting.</div></div>
+      <div class="card amber"><div class="ct" style="font-size:1.3rem">O(n²)</div><div class="cb">Nested loops. Bubble/selection sort. OK for n&lt;1000, catastrophic for large input.</div></div>
+      <div class="card red"><div class="ct" style="font-size:1.3rem">O(2ⁿ)</div><div class="cb">All subsets. Naive recursive Fibonacci. n=30 = 1 billion ops. Unusable.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Sorting Reference</div>
+    <table class="tbl"><tr><th>Algorithm</th><th>Best</th><th>Average</th><th>Worst</th><th>Space</th><th>Stable</th><th>Notes</th></tr>
+    <tr><td>Merge Sort</td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O on">O(n)</span></td><td style="color:var(--green)">Yes</td><td>Stable, good for linked lists, external sort</td></tr>
+    <tr><td>Quick Sort</td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O on2">n²</span></td><td><span class="big-O ologn">log n</span></td><td style="color:var(--red)">No</td><td>In-practice fastest on arrays. Random pivot avoids worst case.</td></tr>
+    <tr><td>Heap Sort</td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O o1">O(1)</span></td><td style="color:var(--red)">No</td><td>Guaranteed O(n log n), in-place. Cache-unfriendly.</td></tr>
+    <tr><td>Tim Sort</td><td><span class="big-O on">O(n)</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O on">O(n)</span></td><td style="color:var(--green)">Yes</td><td>Python, Java default. Exploits natural runs in real-world data.</td></tr>
+    <tr><td>Counting Sort</td><td><span class="big-O on">O(n+k)</span></td><td><span class="big-O on">O(n+k)</span></td><td><span class="big-O on">O(n+k)</span></td><td><span class="big-O on">O(k)</span></td><td style="color:var(--green)">Yes</td><td>Non-comparison. Only for small integer range k.</td></tr>
+    <tr><td>Radix Sort</td><td><span class="big-O on">O(nk)</span></td><td><span class="big-O on">O(nk)</span></td><td><span class="big-O on">O(nk)</span></td><td><span class="big-O on">O(n+k)</span></td><td style="color:var(--green)">Yes</td><td>Sort integers/strings digit by digit. Beats O(n log n) when k is small.</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Graph Algorithm Decision Tree</div>
+    <div class="g2">
+      <div class="card"><div class="ct">BFS (Breadth-First)</div><div class="cb">Queue. Shortest path in unweighted graph. Level-order traversal. Finds shortest path but uses more memory than DFS. O(V+E).</div></div>
+      <div class="card"><div class="ct">DFS (Depth-First)</div><div class="cb">Stack/recursion. Cycle detection, topological sort, connected components, maze solving. Less memory than BFS. O(V+E).</div></div>
+      <div class="card"><div class="ct">Dijkstra</div><div class="cb">Min-heap + relaxation. Shortest path, non-negative weights. O((V+E) log V). Use when edge weights are positive and you need exact shortest path.</div></div>
+      <div class="card"><div class="ct">Bellman-Ford</div><div class="cb">Shortest path with negative weights. Detects negative cycles (run V-1 iterations, then 1 more — if still improving, negative cycle exists). O(VE).</div></div>
+      <div class="card"><div class="ct">Floyd-Warshall</div><div class="cb">All-pairs shortest path. O(V³). Small dense graphs. DP: dp[i][j][k] = shortest i→j using only nodes 0..k.</div></div>
+      <div class="card"><div class="ct">Topological Sort</div><div class="cb">DFS post-order or Kahn's algorithm (BFS + in-degree). DAGs only. Dependency resolution, build systems, task scheduling.</div></div>
+      <div class="card"><div class="ct">Kruskal's MST</div><div class="cb">Sort edges by weight + DSU. Add edge if it doesn't form a cycle. O(E log E). Good for sparse graphs.</div></div>
+      <div class="card"><div class="ct">Prim's MST</div><div class="cb">Greedy: start from any node, always add cheapest edge to unvisited node. Min-heap + visited set. O(E log V). Good for dense graphs.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Dynamic Programming Framework</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>DP — 4-step framework</span><span class="lang">TypeScript</span></div>
+<pre><span class="c">// 1. Define state: what does dp[i] represent?</span>
+<span class="c">// 2. Find recurrence: dp[i] = f(dp[i-1], dp[i-2], ...)</span>
+<span class="c">// 3. Base cases: dp[0], dp[1]</span>
+<span class="c">// 4. Direction: top-down (memo) or bottom-up (tabulation)</span>
+ 
+<span class="c">// TOP-DOWN (memoization) — natural recursion + cache</span>
+<span class="k">function</span> <span class="v">fib</span>(n: <span class="t">number</span>, memo = <span class="k">new</span> Map()) {
+  <span class="k">if</span> (n &lt;= 1) <span class="k">return</span> n
+  <span class="k">if</span> (memo.has(n)) <span class="k">return</span> memo.get(n)!
+  <span class="k">const</span> result = fib(n-1, memo) + fib(n-2, memo)
+  memo.set(n, result)
+  <span class="k">return</span> result
+}
+ 
+<span class="c">// BOTTOM-UP (tabulation) — faster, no stack, space-optimizable</span>
+<span class="k">function</span> <span class="v">fib</span>(n: <span class="t">number</span>): <span class="t">number</span> {
+  <span class="k">if</span> (n &lt;= 1) <span class="k">return</span> n
+  <span class="k">let</span> [prev, curr] = [0, 1]
+  <span class="k">for</span> (<span class="k">let</span> i = 2; i &lt;= n; i++) [prev, curr] = [curr, prev + curr]
+  <span class="k">return</span> curr  <span class="c">// O(1) space — rolling array optimization</span>
+}</pre></div>
+    <div class="sub-sub">Classic DP Problems</div>
+    <table class="tbl"><tr><th>Problem</th><th>State</th><th>Recurrence</th></tr>
+    <tr><td>0/1 Knapsack</td><td>dp[i][w] = max value using items 0..i with capacity w</td><td>max(dp[i-1][w], dp[i-1][w-wt[i]] + val[i])</td></tr>
+    <tr><td>Longest Common Subsequence</td><td>dp[i][j] = LCS of s1[0..i], s2[0..j]</td><td>if s1[i]==s2[j]: 1+dp[i-1][j-1] else max(dp[i-1][j], dp[i][j-1])</td></tr>
+    <tr><td>Edit Distance</td><td>dp[i][j] = edits to turn s1[0..i] into s2[0..j]</td><td>if equal: dp[i-1][j-1] else 1+min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])</td></tr>
+    <tr><td>Coin Change</td><td>dp[i] = min coins to make amount i</td><td>min(dp[i-coin] + 1) for each coin</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Two Pointers / Sliding Window / Binary Search</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>core patterns</span><span class="lang">TypeScript</span></div>
+<pre><span class="c">// TWO POINTERS — sorted array, pair sum, palindrome check</span>
+<span class="k">let</span> l = 0, r = arr.length - 1
+<span class="k">while</span> (l &lt; r) { <span class="c">/* shrink from both ends */</span> }
+ 
+<span class="c">// SLIDING WINDOW — subarray/substring with constraint</span>
+<span class="k">let</span> l = 0, windowSum = 0
+<span class="k">for</span> (<span class="k">let</span> r = 0; r &lt; n; r++) {
+  windowSum += arr[r]
+  <span class="k">while</span> (windowSum &gt; target) windowSum -= arr[l++]
+  maxLen = Math.max(maxLen, r - l + 1)
+}
+ 
+<span class="c">// BINARY SEARCH — sorted array or monotonic answer space</span>
+<span class="k">let</span> lo = 0, hi = n - 1
+<span class="k">while</span> (lo &lt;= hi) {
+  <span class="k">const</span> mid = lo + ((hi - lo) &gt;&gt; 1)  <span class="c">// safe midpoint — avoid overflow</span>
+  <span class="k">if</span> (check(mid)) hi = mid - 1       <span class="c">// or lo = mid + 1 for right bound</span>
+  <span class="k">else</span> lo = mid + 1
+}</pre></div>
+  </div>
+</div>
+
+<!-- 04 OPERATING SYSTEMS -->
+<div class="section" id="s-os">
+  <div class="sec-head"><div class="sec-tag">// 04 · foundations</div><div class="sec-title">Operating <em>Systems</em></div><div class="sec-desc">Processes, threads, scheduling, virtual memory, file systems, IPC, and system calls. Understanding what happens below your code makes you a dramatically better engineer.</div></div>
+  <div class="sub">
+    <div class="sub-head">Process vs Thread vs Coroutine</div>
+    <table class="tbl"><tr><th></th><th>Process</th><th>Thread</th><th>Coroutine / Green Thread</th></tr>
+    <tr><td style="color:var(--muted)">Memory</td><td>Own address space</td><td>Shared with process</td><td>Shared, tiny stack (~2KB)</td></tr>
+    <tr><td style="color:var(--muted)">Switch cost</td><td>High (TLB flush, context save)</td><td>Medium (registers, stack)</td><td>Near-zero (user-space scheduler)</td></tr>
+    <tr><td style="color:var(--muted)">Isolation</td><td>Full — crash doesn't affect siblings</td><td>None — one thread crashes the process</td><td>None</td></tr>
+    <tr><td style="color:var(--muted)">Parallelism</td><td>Yes (multi-core)</td><td>Yes (multi-core)</td><td>Concurrent but not always parallel</td></tr>
+    <tr><td style="color:var(--muted)">Examples</td><td>Chrome tabs, Docker containers</td><td>Java threads, pthreads, OS threads</td><td>Go goroutines, async/await, Python asyncio</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CPU Scheduling Algorithms</div>
+    <div class="g2">
+      <div class="card"><div class="ct">FCFS — First Come First Served</div><div class="cb">Simple queue. No starvation. Convoy effect: one long job blocks all short jobs behind it. Bad for interactive workloads.</div></div>
+      <div class="card"><div class="ct">SJF / SRTF</div><div class="cb">Shortest Job First / Shortest Remaining Time First. Theoretically optimal average wait time. Problem: how do you know burst time in advance? Starvation of long jobs.</div></div>
+      <div class="card"><div class="ct">Round Robin</div><div class="cb">Time quantum (10–100ms) per process. Fair, responsive, good for interactive. Quantum too small = context switch overhead. Too large = degrades to FCFS.</div></div>
+      <div class="card"><div class="ct">Priority + Aging</div><div class="cb">Higher priority runs first. Aging prevents starvation: wait time increases priority. Linux uses CFS (Completely Fair Scheduler) — tracks vruntime, picks lowest.</div></div>
+      <div class="card"><div class="ct">Multilevel Feedback Queue</div><div class="cb">Multiple queues with different priorities. New jobs start high-priority. If they use full quantum, drop to lower queue. Interactive jobs stay high. CPU-bound drop down.</div></div>
+      <div class="card"><div class="ct">Linux CFS</div><div class="cb">Completely Fair Scheduler (since 2.6.23). Red-black tree ordered by virtual runtime. Always runs process with lowest vruntime. Niceness adjusts vruntime increment rate.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Virtual Memory &amp; Paging</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Pages &amp; Page Tables</div><div class="cb">Virtual address space divided into 4KB pages. OS maintains a page table mapping virtual page number → physical frame. Page fault = page not in RAM → OS loads from swap/disk → resumes process.</div></div>
+      <div class="card cyan"><div class="ct">TLB (Translation Lookaside Buffer)</div><div class="cb">Hardware cache for page table lookups. TLB hit = fast (&lt;1ns). TLB miss = page table walk = slow. Context switch flushes TLB — one reason process switches cost more than thread switches.</div></div>
+    </div>
+    <div class="sub-sub">Process Memory Layout (low → high address)</div>
+    <div class="srow">
+      <div class="mem-seg" style="border-color:rgba(59,130,246,0.4)"><span class="ms-name" style="color:var(--blue)">Text (Code)</span><span class="ms-desc">Executable instructions. Read-only. Shared between processes running same binary.</span><span class="ms-addr">0x400000</span></div>
+      <div class="mem-seg" style="border-color:rgba(0,212,204,0.4)"><span class="ms-name" style="color:var(--cyan)">Data (.data)</span><span class="ms-desc">Initialized global/static variables. String literals (.rodata, read-only).</span></div>
+      <div class="mem-seg" style="border-color:rgba(77,255,180,0.4)"><span class="ms-name" style="color:var(--green)">BSS</span><span class="ms-desc">Uninitialized global/static variables. Zero-initialized at program start.</span></div>
+      <div class="mem-seg" style="border-color:rgba(245,166,35,0.4)"><span class="ms-name" style="color:var(--amber)">Heap ↑</span><span class="ms-desc">Dynamic allocation (malloc/new). Grows upward. GC manages in managed languages. Fragmentation over time.</span></div>
+      <div class="mem-seg" style="border-color:rgba(168,85,247,0.4)"><span class="ms-name" style="color:var(--purple)">Memory-mapped</span><span class="ms-desc">mmap'd files, shared libraries (libc.so), anonymous mappings. Lives between heap and stack.</span></div>
+      <div class="mem-seg" style="border-color:rgba(255,77,109,0.4)"><span class="ms-name" style="color:var(--red)">Stack ↓</span><span class="ms-desc">Local variables, function frames, return addresses. Grows downward. Default 8MB limit. Stack overflow = too-deep recursion.</span><span class="ms-addr">high addr</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Page Replacement Algorithms</div>
+    <table class="tbl"><tr><th>Algorithm</th><th>Policy</th><th>Performance</th></tr>
+    <tr><td>FIFO</td><td>Evict oldest page</td><td>Simple. Belady's anomaly: more frames can cause more faults.</td></tr>
+    <tr><td>LRU</td><td>Evict least recently used</td><td>Near-optimal. Expensive to implement exactly. Approximated with clock algorithm.</td></tr>
+    <tr><td>Clock (Second Chance)</td><td>FIFO but give pages a second chance if recently used</td><td>LRU approximation. Linux uses this. O(1) per eviction.</td></tr>
+    <tr><td>OPT (Bélády's)</td><td>Evict page not needed furthest in future</td><td>Optimal — impossible in practice (requires future knowledge). Theoretical benchmark.</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">IPC — Inter-Process Communication</div>
+    <table class="tbl"><tr><th>Mechanism</th><th>Speed</th><th>Use case</th><th>Notes</th></tr>
+    <tr><td>Anonymous Pipe</td><td>Fast</td><td>Parent ↔ child. <code>ls | grep foo</code></td><td>One-directional, half-duplex</td></tr>
+    <tr><td>Named Pipe (FIFO)</td><td>Fast</td><td>Unrelated processes, same machine</td><td>Persists in filesystem</td></tr>
+    <tr><td>Unix Domain Socket</td><td>Very fast</td><td>Local IPC with full socket API</td><td>Docker, Postgres, Redis use this</td></tr>
+    <tr><td>Shared Memory</td><td>Fastest</td><td>Large data between processes</td><td>Requires explicit synchronization</td></tr>
+    <tr><td>Message Queue (SysV/POSIX)</td><td>Medium</td><td>Async, structured messages</td><td>Kernel-managed, persists until deleted</td></tr>
+    <tr><td>TCP/IP Socket</td><td>Slower</td><td>Cross-machine communication</td><td>Works across network</td></tr>
+    <tr><td>Signal</td><td>Instant</td><td>Notifications (SIGTERM, SIGKILL, SIGHUP)</td><td>Very limited payload (just signal number)</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">File Systems</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Inodes</div><div class="cb">Every Unix file has an inode storing: permissions, owner/group, timestamps, file size, and pointers to data blocks. NOT the filename. Directory = mapping of names → inode numbers. Hard link = second directory entry pointing to same inode. Symlink = new inode pointing to a path.</div></div>
+      <div class="card"><div class="ct">Journaling</div><div class="cb">Ext4, NTFS, APFS write operations to a journal before applying to the main filesystem. On crash, replay or discard the journal. Prevents corruption. Write-ahead logging (WAL) in databases (Postgres, SQLite) uses the same idea.</div></div>
+      <div class="card"><div class="ct">VFS (Virtual File System)</div><div class="cb">Linux abstraction layer — same syscalls (open, read, write) work on ext4, tmpfs, procfs, sysfs. Everything in Linux is a file. /proc contains process info as files. /sys exposes kernel internals.</div></div>
+      <div class="card"><div class="ct">Copy-on-Write (CoW)</div><div class="cb">BTRFS, ZFS, APFS, Docker layers use CoW. When you write a page, copy it first. Original stays intact. Enables snapshots, efficient forks, and Docker image layers with near-zero copy cost.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 05 NETWORKING -->
+<div class="section" id="s-net">
+  <div class="sec-head"><div class="sec-tag">// 05 · foundations</div><div class="sec-title">Computer <em>Networking</em></div><div class="sec-desc">OSI model, TCP/IP, HTTP/1.1/2/3, WebSockets, DNS resolution flow, TLS 1.3 handshake, and everything you need to debug a packet that won't arrive.</div></div>
+  <div class="sub">
+    <div class="sub-head">OSI 7-Layer Model</div>
+    <div class="srow">
+      <div class="net-layer" style="background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.25)"><span class="nl-num">7</span><span class="nl-name" style="color:var(--red)">Application</span><span class="nl-proto">HTTP, DNS, SMTP, FTP, SSH, WebSocket, gRPC</span><span class="nl-ex">your app lives here</span></div>
+      <div class="net-layer" style="border:1px solid var(--border)"><span class="nl-num">6</span><span class="nl-name" style="color:var(--orange)">Presentation</span><span class="nl-proto">TLS/SSL, encoding (UTF-8), serialization (JSON, Protobuf, MessagePack)</span></div>
+      <div class="net-layer" style="border:1px solid var(--border)"><span class="nl-num">5</span><span class="nl-name" style="color:var(--amber)">Session</span><span class="nl-proto">Session establishment &amp; teardown, NetBIOS, RPC session layer</span></div>
+      <div class="net-layer" style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25)"><span class="nl-num">4</span><span class="nl-name" style="color:var(--purple)">Transport</span><span class="nl-proto">TCP (reliable, ordered) · UDP (fast, best-effort) — ports live here</span><span class="nl-ex">sockets</span></div>
+      <div class="net-layer" style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.25)"><span class="nl-num">3</span><span class="nl-name" style="color:var(--blue)">Network</span><span class="nl-proto">IP (routing), ICMP (ping/traceroute), OSPF, BGP — IP addresses live here</span><span class="nl-ex">routers</span></div>
+      <div class="net-layer" style="background:rgba(0,212,204,0.06);border:1px solid rgba(0,212,204,0.25)"><span class="nl-num">2</span><span class="nl-name" style="color:var(--cyan)">Data Link</span><span class="nl-proto">Ethernet, Wi-Fi (802.11), ARP — MAC addresses live here, frames</span><span class="nl-ex">switches</span></div>
+      <div class="net-layer" style="border:1px solid var(--border)"><span class="nl-num">1</span><span class="nl-name" style="color:var(--green)">Physical</span><span class="nl-proto">Bits as electrical signals, light pulses, or radio waves — cables, fiber, NIC</span><span class="nl-ex">cables</span></div>
+    </div>
+    <div class="info"><div class="ih">// TCP/IP IS 4 LAYERS IN PRACTICE</div><p>OSI is a conceptual model. TCP/IP stack collapses it: Application (5-7) + Transport (4) + Internet (3) + Link (1-2). When you hear "Layer 7 load balancer" vs "Layer 4 load balancer" — L7 sees HTTP content, L4 sees only IP+port.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">TCP vs UDP</div>
+    <table class="tbl"><tr><th></th><th>TCP</th><th>UDP</th></tr>
+    <tr><td>Connection</td><td>Connection-oriented (3-way handshake: SYN → SYN-ACK → ACK)</td><td>Connectionless — just send</td></tr>
+    <tr><td>Delivery guarantee</td><td>Guaranteed, ordered, no duplicates (retransmit on loss)</td><td>Best-effort — may drop, duplicate, or reorder</td></tr>
+    <tr><td>Overhead</td><td>High — ACKs, flow control, congestion control, retransmit</td><td>Minimal — just checksum</td></tr>
+    <tr><td>Head-of-line blocking</td><td>Yes — one lost packet stalls the entire stream</td><td>No — packets are independent</td></tr>
+    <tr><td>Use cases</td><td>HTTP, SSH, databases, email, file transfer</td><td>Video streaming, VoIP, DNS, gaming, QUIC/HTTP3</td></tr></table>
+    <div class="sub-sub">TCP 3-Way Handshake &amp; Teardown</div>
+    <div class="flow">
+      <div class="fs">Client: SYN (seq=x)</div><div class="fa">→</div>
+      <div class="fs">Server: SYN-ACK (seq=y, ack=x+1)</div><div class="fa">→</div>
+      <div class="fs">Client: ACK (ack=y+1)</div><div class="fa">→</div>
+      <div class="fs">Connection established</div>
+    </div>
+    <div class="flow" style="margin-top:4px">
+      <div class="fs">FIN</div><div class="fa">→</div><div class="fs">ACK</div><div class="fa">→</div><div class="fs">FIN</div><div class="fa">→</div><div class="fs">ACK</div><div class="fa">→</div><div class="fs">TIME_WAIT (2MSL)</div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">HTTP Evolution</div>
+    <div class="g4">
+      <div class="card"><div class="cl">HTTP/1.1 (1997)</div><div class="ct">Keep-alive, pipelining</div><div class="cb">6 parallel connections/domain. Head-of-line blocking per connection. Still the baseline for most traffic today.</div></div>
+      <div class="card"><div class="cl">HTTP/2 (2015)</div><div class="ct">Multiplexed streams</div><div class="cb">Many requests over one TCP connection. Binary framing. HPACK header compression. Server push. Still TCP-level HoL blocking.</div></div>
+      <div class="card"><div class="cl">HTTP/3 / QUIC (2022)</div><div class="ct">UDP-based transport</div><div class="cb">QUIC replaces TCP. No HoL blocking per stream. 0-RTT resumption. Built-in TLS 1.3. Default for Google, YouTube, Cloudflare.</div></div>
+      <div class="card"><div class="cl">WebSocket (RFC 6455)</div><div class="ct">Full-duplex</div><div class="cb">HTTP upgrade to persistent TCP connection. Both sides push freely. Real-time chat, live dashboards, collaborative editing, multiplayer.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">DNS Resolution Flow</div>
+    <div class="flow">
+      <div class="fs">1. Browser cache</div><div class="fa">→</div>
+      <div class="fs">2. OS cache (/etc/hosts)</div><div class="fa">→</div>
+      <div class="fs">3. Stub resolver</div><div class="fa">→</div>
+      <div class="fs">4. Recursive resolver (ISP/8.8.8.8)</div><div class="fa">→</div>
+      <div class="fs">5. Root nameserver (.)</div><div class="fa">→</div>
+      <div class="fs">6. TLD server (.com)</div><div class="fa">→</div>
+      <div class="fs">7. Authoritative NS</div><div class="fa">→</div>
+      <div class="fs">IP returned + cached by TTL</div>
+    </div>
+    <table class="tbl" style="margin-top:1rem"><tr><th>Record</th><th>Maps</th><th>Example</th></tr>
+    <tr><td>A</td><td>Hostname → IPv4</td><td><code>api.example.com → 1.2.3.4</code></td></tr>
+    <tr><td>AAAA</td><td>Hostname → IPv6</td><td><code>api.example.com → 2001:db8::1</code></td></tr>
+    <tr><td>CNAME</td><td>Alias → canonical hostname</td><td><code>www → example.com</code> (follow chain)</td></tr>
+    <tr><td>MX</td><td>Domain → mail server(s)</td><td>With priority values</td></tr>
+    <tr><td>TXT</td><td>Domain → arbitrary text</td><td>SPF, DKIM, domain verification tokens</td></tr>
+    <tr><td>NS</td><td>Zone → authoritative nameserver</td><td>Delegation records</td></tr>
+    <tr><td>SOA</td><td>Zone authority information</td><td>Primary NS, admin email, serial, refresh intervals</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">TLS 1.3 Handshake</div>
+    <div class="flow">
+      <div class="fs">ClientHello (cipher suites, key_share)</div><div class="fa">→</div>
+      <div class="fs">ServerHello + Certificate + Finished</div><div class="fa">→</div>
+      <div class="fs">Client verifies cert chain + Finished</div><div class="fa">→</div>
+      <div class="fs">Encrypted application data (1-RTT)</div>
+    </div>
+    <div class="g2" style="margin-top:1rem">
+      <div class="card green"><div class="ct">TLS 1.3 improvements over 1.2</div><div class="cb">1-RTT (was 2-RTT). 0-RTT resumption. Removed: RSA key exchange, RC4, DES, 3DES, SHA-1, MD5. Forward secrecy mandatory (ECDHE). Encrypted certificates.</div></div>
+      <div class="card amber"><div class="ct">0-RTT caveat</div><div class="cb">Fast but vulnerable to replay attacks. The early data sent in 0-RTT can be replayed by an attacker. Never use 0-RTT for non-idempotent requests (POST, payment endpoints).</div></div>
+    </div>
+    <div class="sub-sub">Subnetting Quick Reference</div>
+    <table class="tbl"><tr><th>CIDR</th><th>Hosts</th><th>Mask</th><th>Typical use</th></tr>
+    <tr><td>/32</td><td>1</td><td>255.255.255.255</td><td>Single host route, loopback</td></tr>
+    <tr><td>/30</td><td>2</td><td>255.255.255.252</td><td>Point-to-point links</td></tr>
+    <tr><td>/24</td><td>254</td><td>255.255.255.0</td><td>Small office / home network</td></tr>
+    <tr><td>/16</td><td>65,534</td><td>255.255.0.0</td><td>Large network / VPC</td></tr>
+    <tr><td>/8</td><td>16.7M</td><td>255.0.0.0</td><td>Class A (10.0.0.0/8 private)</td></tr></table>
+  </div>
+</div>
+
+<!-- 06 ARCHITECTURE -->
+<div class="section" id="s-arch">
+  <div class="sec-head"><div class="sec-tag">// 06 · systems</div><div class="sec-title">System <em>Architecture</em></div><div class="sec-desc">Monolith vs microservices, SOLID, DDD, hexagonal architecture, event-driven patterns, CQRS/Event Sourcing, and the 2026 reference stack.</div></div>
+  <div class="sub">
+    <div class="sub-head">Architecture Evolution</div>
+    <table class="tbl"><tr><th>Pattern</th><th>When to use</th><th>Tradeoffs</th></tr>
+    <tr><td style="color:var(--green)">Modular Monolith</td><td>0 → PMF. Team &lt;15. Single deploy cadence.</td><td>Simple ops, fast iteration. Limited independent scaling.</td></tr>
+    <tr><td style="color:var(--cyan)">Service-Oriented (SOA)</td><td>Enterprise with existing systems, ESB integration</td><td>Coarse-grained services, often ESB-coupled. Heavy XML/SOAP era.</td></tr>
+    <tr><td style="color:var(--amber)">Microservices</td><td>Proven scaling bottleneck. Teams need separate deploy cadence.</td><td>Ops complexity, distributed tracing required, network latency budget.</td></tr>
+    <tr><td style="color:var(--purple)">Event-Driven / CQRS</td><td>Audit trails, async workflows, high write throughput, temporal decoupling</td><td>Eventual consistency, harder to debug, schema evolution challenging.</td></tr>
+    <tr><td style="color:var(--red)">Serverless</td><td>Spiky/unpredictable traffic, event handlers, glue code</td><td>Cold starts, max execution time, vendor lock-in, debugging harder.</td></tr></table>
+    <div class="warn"><div class="wh">// START MONOLITH — EXTRACT LATER</div><p>Microservices are an optimization for organizational scale and independent deployment needs — not a starting architecture. A modular monolith with clean boundaries is easier to extract into services later than a big ball of mud is to clean up. Premature distribution is the root of accidental complexity.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SOLID Principles</div>
+    <div class="g2">
+      <div class="card"><div class="cl">S — Single Responsibility</div><div class="ct">One reason to change</div><div class="cb">A module has exactly one actor who can require it to change. A UserService that also sends emails violates SRP — the marketing team and auth team both own it now.</div></div>
+      <div class="card"><div class="cl">O — Open/Closed</div><div class="ct">Open for extension, closed for modification</div><div class="cb">Add behavior through new code, not by editing existing code. Strategy pattern, plugin systems. Adding a new payment method shouldn't require editing the checkout flow.</div></div>
+      <div class="card"><div class="cl">L — Liskov Substitution</div><div class="ct">Subtypes must be substitutable</div><div class="cb">If Square extends Rectangle but breaks when you set width/height independently, you've violated LSP. Prefer composition. If you can't substitute without checking the type, the hierarchy is wrong.</div></div>
+      <div class="card"><div class="cl">I — Interface Segregation</div><div class="ct">No client depends on unused methods</div><div class="cb">Split fat interfaces. A ReadableStore and WritableStore beat one Store interface with 10 methods. Classes only implement what they use.</div></div>
+      <div class="card"><div class="cl">D — Dependency Inversion</div><div class="ct">Depend on abstractions</div><div class="cb">Business logic must not import the database driver directly. It depends on a repository interface. The concrete implementation is injected. This is what makes unit testing possible.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">DDD — Domain-Driven Design</div>
+    <div class="g4">
+      <div class="card purple"><div class="ct">Bounded Context</div><div class="cb">A semantic boundary where the domain model has a specific meaning. "Order" in shipping ≠ "Order" in billing. Don't share models across contexts.</div></div>
+      <div class="card purple"><div class="ct">Aggregate</div><div class="cb">Cluster of entities with one root (Aggregate Root). Consistency is enforced within the aggregate boundary. Cross-aggregate = eventual consistency only.</div></div>
+      <div class="card purple"><div class="ct">Domain Event</div><div class="cb">Something significant that happened in the domain: OrderPlaced, PaymentFailed. Past tense. Immutable fact. The basis of event sourcing.</div></div>
+      <div class="card purple"><div class="ct">Repository</div><div class="cb">Collection-like interface for persistence. Domain code never touches SQL. Inject the interface, not the ORM. Testable without a database.</div></div>
+      <div class="card purple"><div class="ct">Value Object</div><div class="cb">Immutable, identified by its values not identity. Money(100, USD) == Money(100, USD). No ID. Examples: Email, Money, Address, DateRange.</div></div>
+      <div class="card purple"><div class="ct">Context Map</div><div class="cb">Documents relationships between bounded contexts. Patterns: Shared Kernel, Customer-Supplier, Anti-Corruption Layer (protect your model from upstream chaos).</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Hexagonal Architecture (Ports &amp; Adapters)</div>
+    <div class="flow">
+      <div class="fs">Driving adapters (HTTP, CLI, gRPC)</div><div class="fa">→</div>
+      <div class="fs">Input Ports (Use Case interfaces)</div><div class="fa">→</div>
+      <div class="fs">Domain (pure business logic)</div><div class="fa">→</div>
+      <div class="fs">Output Ports (Repository interfaces)</div><div class="fa">→</div>
+      <div class="fs">Driven adapters (DB, queues, email)</div>
+    </div>
+    <div class="info"><div class="ih">// THE KEY RULE</div><p>The domain knows nothing about frameworks, databases, or HTTP. It only sees the port interfaces it defines. Everything external adapts to it — not the other way around. This makes the domain testable in pure unit tests with no infrastructure.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CQRS &amp; Event Sourcing</div>
+    <div class="g2">
+      <div class="card"><div class="ct">CQRS (Command Query Responsibility Segregation)</div><div class="cb">Separate write model (commands → events) from read model (optimized query projections). Commands change state. Queries return data. Different models, possibly different databases.</div></div>
+      <div class="card"><div class="ct">Event Sourcing</div><div class="cb">Store a log of domain events as the source of truth, not current state. Current state = replay of events. Free audit log. Time travel. Snapshots for performance. Kafka as the event log.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">2026 Reference Stack (multi-plane / ZTA-aligned)</div>
+    <div class="srow">
+      <div class="si"><span class="sk">Language</span><span class="sv" style="color:var(--cyan)">TypeScript (fullstack/monorepo) · Go (services, CLIs, systems) · Rust (perf-critical, embedded)</span></div>
+      <div class="si"><span class="sk">Runtime</span><span class="sv" style="color:var(--cyan)">Docker + Kubernetes (or Nomad) · Stateless OCI containers · Distroless base images</span></div>
+      <div class="si"><span class="sk">IaC</span><span class="sv" style="color:var(--cyan)">Terraform / OpenTofu · Pulumi (TypeScript IaC) · No ClickOps — ever</span></div>
+      <div class="si"><span class="sk">Config / Secrets</span><span class="sv" style="color:var(--cyan)">.env.local → CI secrets → HashiCorp Vault (prod) · Zero secrets in Git</span></div>
+      <div class="si"><span class="sk">Messaging</span><span class="sv" style="color:var(--cyan)">Kafka (durable streams) · RabbitMQ (task queues) · NATS (lightweight pub/sub)</span></div>
+      <div class="si"><span class="sk">Networking</span><span class="sv" style="color:var(--cyan)">Tailscale VPN · mTLS between services · Nginx Proxy Manager · Cloudflare</span></div>
+      <div class="si"><span class="sk">Dev Workflow</span><span class="sv" style="color:var(--cyan)">Trunk-based dev · Gitea (self-hosted) · Woodpecker CI · Spec-driven + AI-augmented</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 07 DATA LAYER -->
+<div class="section" id="s-data">
+  <div class="sec-head"><div class="sec-tag">// 07 · systems</div><div class="sec-title">Data <em>Layer</em></div><div class="sec-desc">Database selection matrix, ACID vs BASE, SQL isolation levels, indexing strategy, the N+1 problem, migration safety, and normalization.</div></div>
+  <div class="sub">
+    <div class="sub-head">Database Selection Matrix</div>
+    <table class="tbl"><tr><th>Need</th><th>Use</th><th>Avoid</th></tr>
+    <tr><td>Default relational</td><td style="color:var(--green)">PostgreSQL 16+</td><td>MySQL for net-new (lacks many PG features)</td></tr>
+    <tr><td>Caching / sessions / pub-sub</td><td style="color:var(--green)">Redis 7+ (or Dragonfly, KeyDB)</td><td>Memcached — Redis is strictly better</td></tr>
+    <tr><td>Full-text search</td><td style="color:var(--cyan)">Postgres FTS (small) → Meilisearch → Elasticsearch</td><td>Never use a search engine as primary DB</td></tr>
+    <tr><td>Time series / metrics</td><td style="color:var(--cyan)">TimescaleDB (PG extension) or InfluxDB 3</td><td>Vanilla Postgres — time-range perf degrades at scale</td></tr>
+    <tr><td>Document / flexible schema</td><td style="color:var(--cyan)">Postgres JSONB (first) → MongoDB</td><td>JSONB handles 90% of "document" needs without extra infra</td></tr>
+    <tr><td>Graph data</td><td style="color:var(--cyan)">Neo4j, Apache AGE (PG extension)</td><td>Simulating graphs in relational tables</td></tr>
+    <tr><td>Object / blob storage</td><td style="color:var(--amber)">MinIO (self-hosted) or AWS S3</td><td>Storing blobs in DB bytea — bloats tables, terrible perf</td></tr>
+    <tr><td>Message / event stream</td><td style="color:var(--amber)">Kafka (durable), RabbitMQ (task), Redis Streams</td><td>Polling a DB table as a queue — a classic anti-pattern</td></tr>
+    <tr><td>Embedded / local</td><td style="color:var(--purple)">SQLite (great), DuckDB (analytics)</td><td>Postgres for single-file embedded apps</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">ACID vs BASE</div>
+    <div class="g2">
+      <div class="card green"><div class="ct">ACID — Relational DBs</div><div class="cb"><strong style="color:var(--text)">A</strong>tomicity: all-or-nothing — the whole transaction commits or the whole thing rolls back.<br><strong style="color:var(--text)">C</strong>onsistency: DB always transitions between valid states per all constraints.<br><strong style="color:var(--text)">I</strong>solation: concurrent transactions don't see each other's in-progress work.<br><strong style="color:var(--text)">D</strong>urability: committed writes survive crashes (WAL + fsync).</div></div>
+      <div class="card amber"><div class="ct">BASE — Distributed NoSQL</div><div class="cb"><strong style="color:var(--text)">B</strong>asically Available: system always responds (may return stale data).<br><strong style="color:var(--text)">S</strong>oft state: state may change even without input (replication propagating).<br><strong style="color:var(--text)">E</strong>ventually consistent: all replicas will converge... eventually. Trades consistency for availability and partition tolerance.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SQL Isolation Levels</div>
+    <table class="tbl"><tr><th>Level</th><th>Dirty Read</th><th>Non-Repeatable Read</th><th>Phantom Read</th><th>Use</th></tr>
+    <tr><td>READ UNCOMMITTED</td><td style="color:var(--red)">Yes</td><td style="color:var(--red)">Yes</td><td style="color:var(--red)">Yes</td><td>Never — you read uncommitted garbage</td></tr>
+    <tr><td>READ COMMITTED</td><td style="color:var(--green)">No</td><td style="color:var(--red)">Yes</td><td style="color:var(--red)">Yes</td><td>PostgreSQL default. Good for most OLTP.</td></tr>
+    <tr><td>REPEATABLE READ</td><td style="color:var(--green)">No</td><td style="color:var(--green)">No</td><td style="color:var(--red)">Yes</td><td>MySQL InnoDB default. Consistent reads within transaction.</td></tr>
+    <tr><td>SERIALIZABLE</td><td style="color:var(--green)">No</td><td style="color:var(--green)">No</td><td style="color:var(--green)">No</td><td>Financial ledgers, inventory. Highest consistency. Slowest.</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Normalization</div>
+    <table class="tbl"><tr><th>Normal Form</th><th>Rule</th><th>Violation example</th></tr>
+    <tr><td>1NF</td><td>Atomic values, no repeating groups, unique rows</td><td>Storing "tag1,tag2,tag3" in one column</td></tr>
+    <tr><td>2NF</td><td>1NF + no partial dependencies (non-key attrs depend on whole PK)</td><td>In order_items(order_id, product_id, product_name) — product_name depends only on product_id</td></tr>
+    <tr><td>3NF</td><td>2NF + no transitive dependencies</td><td>Storing both zip_code and city — city depends on zip, not the row's PK</td></tr>
+    <tr><td>BCNF</td><td>Stronger 3NF — every determinant is a candidate key</td><td>Most practical schemas target 3NF/BCNF</td></tr>
+    <tr><td>Denormalization</td><td>Intentional duplication for read performance</td><td>Storing user_name on orders to avoid a join — acceptable when the join is a proven bottleneck</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Indexing Strategy</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>when and how to index</span><span class="lang">PostgreSQL</span></div>
+<pre><span class="c">-- ALWAYS index foreign keys and common WHERE/JOIN columns</span>
+<span class="k">CREATE INDEX ON</span> orders(user_id);          <span class="c">-- FK — prevents table scan on join</span>
+<span class="k">CREATE INDEX ON</span> users(email);             <span class="c">-- unique lookup</span>
+<span class="k">CREATE INDEX ON</span> events(created_at);       <span class="c">-- time-range queries</span>
+ 
+<span class="c">-- Partial index — smaller, faster for subset queries</span>
+<span class="k">CREATE INDEX ON</span> orders(status) <span class="k">WHERE</span> status = <span class="s">'pending'</span>;
+ 
+<span class="c">-- Composite index — column ORDER matters for selectivity and range scans</span>
+<span class="k">CREATE INDEX ON</span> orders(user_id, created_at);
+<span class="c">-- ↑ supports: WHERE user_id=? and WHERE user_id=? AND created_at&gt;?</span>
+<span class="c">-- ✗ does NOT support: WHERE created_at&gt;? alone</span>
+ 
+<span class="c">-- Covering index — include extra columns to avoid heap fetch</span>
+<span class="k">CREATE INDEX ON</span> orders(user_id) <span class="k">INCLUDE</span> (total, status);
+ 
+<span class="c">-- Diagnose slow queries:</span>
+<span class="k">EXPLAIN</span> (ANALYZE, BUFFERS, FORMAT TEXT) <span class="k">SELECT</span> ...;</pre></div>
+    <div class="alert"><div class="ah">// THE N+1 PROBLEM</div><p>Fetching a list of N users then making N separate queries to fetch each user's orders = N+1 queries. Fix: JOIN, subquery, or ORM eager loading (<code>include</code>/<code>preload</code>). Detectable with query logging. Always log slow queries in dev.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Safe Migration Strategy (Expand-Contract)</div>
+    <div class="flow">
+      <div class="fs">1. Expand: add new column (nullable)</div><div class="fa">→</div>
+      <div class="fs">2. Deploy app that writes to both old + new</div><div class="fa">→</div>
+      <div class="fs">3. Backfill existing rows</div><div class="fa">→</div>
+      <div class="fs">4. Deploy app that reads from new column</div><div class="fa">→</div>
+      <div class="fs">5. Contract: drop old column</div>
+    </div>
+    <div class="warn"><div class="wh">// NEVER run migration and app deploy simultaneously</div><p>Migration runs first. New code deploys after. Old code must work with new schema (backward compatible). Never add NOT NULL without a DEFAULT. Never rename a column in one step — add + copy + drop.</p></div>
+  </div>
+</div>
+
+<!-- 08 API DESIGN -->
+<div class="section" id="s-api">
+  <div class="sec-head"><div class="sec-tag">// 08 · systems</div><div class="sec-title">API <em>Design</em></div><div class="sec-desc">REST, GraphQL, gRPC, tRPC, WebSocket — when to use each, URL design, HTTP semantics, versioning, idempotency, rate limiting, and error standards.</div></div>
+  <div class="sub">
+    <div class="sub-head">Protocol Selection</div>
+    <table class="tbl"><tr><th>Protocol</th><th>Transport</th><th>Use when</th><th>Avoid when</th></tr>
+    <tr><td style="color:var(--cyan)">REST + JSON</td><td>HTTP/1.1+</td><td>Public APIs, external clients, cacheable resources</td><td>High-frequency internal calls, binary-heavy data</td></tr>
+    <tr><td style="color:var(--purple)">GraphQL</td><td>HTTP POST</td><td>Complex client data needs, multiple clients, rapid UI iteration</td><td>Simple CRUD, caching critical paths, public streaming API</td></tr>
+    <tr><td style="color:var(--green)">gRPC + Protobuf</td><td>HTTP/2</td><td>Internal service-to-service, streaming, low-bandwidth clients</td><td>Browser clients without grpc-web, public external API</td></tr>
+    <tr><td style="color:var(--amber)">tRPC</td><td>HTTP</td><td>Full-stack TypeScript monorepo — type-safe end-to-end, zero schema drift</td><td>External consumers, non-TypeScript clients</td></tr>
+    <tr><td style="color:var(--pink)">WebSocket</td><td>TCP (upgraded)</td><td>Real-time bidirectional: chat, live feeds, multiplayer</td><td>Simple request/response — overkill, hard to scale horizontally</td></tr>
+    <tr><td style="color:var(--blue)">SSE</td><td>HTTP</td><td>Server push only: live updates, progress, AI token streaming</td><td>Bidirectional communication needed</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">REST Design Rules</div>
+    <div class="g2">
+      <div class="card"><div class="ct">URL Structure</div><div class="cb">Nouns not verbs. Plural resources. Hierarchical for ownership.<br><code>/v1/users/:id/orders</code> ✓<br><code>/v1/getUserOrders</code> ✗<br>Max 2 levels of nesting. Deeper = wrong model.</div></div>
+      <div class="card"><div class="ct">HTTP Verb Semantics</div><div class="cb"><code>GET</code> — idempotent, cacheable, no body<br><code>POST</code> — create, not idempotent<br><code>PUT</code> — full replace, idempotent<br><code>PATCH</code> — partial update<br><code>DELETE</code> — idempotent (2nd call: 404 or 204)</div></div>
+    </div>
+    <div class="cb-wrap"><div class="cb-bar"><span>standard response envelopes</span><span class="lang">JSON</span></div>
+<pre><span class="c">// Success — list with cursor pagination</span>
+{ <span class="s">"data"</span>: [...], <span class="s">"pagination"</span>: { <span class="s">"next_cursor"</span>: <span class="s">"opaque-string"</span>, <span class="s">"has_more"</span>: true } }
+ 
+<span class="c">// Error — RFC 7807 Problem Details (use this standard)</span>
+{
+  <span class="s">"type"</span>: <span class="s">"https://errors.api.example.com/validation-error"</span>,
+  <span class="s">"title"</span>: <span class="s">"Validation Failed"</span>,
+  <span class="s">"status"</span>: 422,
+  <span class="s">"detail"</span>: <span class="s">"The request body contains invalid fields"</span>,
+  <span class="s">"errors"</span>: [{ <span class="s">"field"</span>: <span class="s">"email"</span>, <span class="s">"code"</span>: <span class="s">"INVALID_FORMAT"</span>, <span class="s">"message"</span>: <span class="s">"must be valid email"</span> }]
+}
+ 
+<span class="c">// Idempotency key — safe retries for POST/mutations</span>
+<span class="k">POST</span> /v1/payments
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000</pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">HTTP Status Code Reference</div>
+    <table class="tbl"><tr><th>Range</th><th>Meaning</th><th>Key codes</th></tr>
+    <tr><td style="color:var(--green)">2xx</td><td>Success</td><td>200 OK · 201 Created (return Location header) · 202 Accepted (async) · 204 No Content · 206 Partial Content</td></tr>
+    <tr><td style="color:var(--cyan)">3xx</td><td>Redirect</td><td>301 Moved Permanently · 302 Found (temp) · 304 Not Modified (ETag cache hit) · 307 Temp (keeps method) · 308 Perm (keeps method)</td></tr>
+    <tr><td style="color:var(--amber)">4xx</td><td>Client error</td><td>400 Bad Request · 401 Unauthenticated · 403 Forbidden · 404 Not Found · 409 Conflict · 410 Gone · 422 Unprocessable · 429 Too Many Requests</td></tr>
+    <tr><td style="color:var(--red)">5xx</td><td>Server error</td><td>500 Internal · 502 Bad Gateway · 503 Unavailable (with Retry-After) · 504 Gateway Timeout</td></tr></table>
+    <div class="alert"><div class="ah">// 401 vs 403 — most common confusion</div><p>401 = "Who are you?" — not authenticated, no/invalid token. 403 = "I know who you are, you just can't do this" — authenticated but not authorized. These are not interchangeable.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">API Versioning Strategies</div>
+    <div class="g3">
+      <div class="card"><div class="ct">URL versioning</div><div class="cb"><code>/v1/users</code> → <code>/v2/users</code>. Simple, explicit, cacheable. Most common for public APIs. Version in URL = easy to test in browser.</div></div>
+      <div class="card"><div class="ct">Header versioning</div><div class="cb"><code>Accept: application/vnd.api+json;version=2</code>. Keeps URLs clean. Harder to test, not cacheable without Vary header.</div></div>
+      <div class="card"><div class="ct">Sunset headers</div><div class="cb">Announce deprecation: <code>Sunset: Sat, 01 Jan 2027 00:00:00 GMT</code> and <code>Deprecation: true</code>. Give consumers 6–12 months notice.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 09 DISTRIBUTED SYSTEMS -->
+<div class="section" id="s-dist">
+  <div class="sec-head"><div class="sec-tag">// 09 · systems</div><div class="sec-title">Distributed <em>Systems</em></div><div class="sec-desc">The 8 fallacies, CAP theorem, consistency models, consensus (Raft), partitioning, replication, and the design patterns that make distributed systems survivable.</div></div>
+  <div class="sub">
+    <div class="sub-head">The 8 Fallacies of Distributed Computing</div>
+    <div class="g4">
+      <div class="card red"><div class="ct">The network is reliable</div><div class="cb">Packets drop. Links fail. Connections time out mid-request. Plan for it.</div></div>
+      <div class="card red"><div class="ct">Latency is zero</div><div class="cb">Same-DC: ~0.5ms. Cross-region: ~100ms. Chatty microservices kill you.</div></div>
+      <div class="card red"><div class="ct">Bandwidth is infinite</div><div class="cb">Serialize efficiently. Protobuf &gt;&gt; JSON. Don't send full objects when you need one field.</div></div>
+      <div class="card red"><div class="ct">The network is secure</div><div class="cb">Internal traffic must use mTLS too. Zero Trust. Anything on the wire can be read or modified.</div></div>
+      <div class="card red"><div class="ct">Topology doesn't change</div><div class="cb">Nodes die, IPs change, services autoscale. Use service discovery, not hardcoded IPs.</div></div>
+      <div class="card red"><div class="ct">There is one admin</div><div class="cb">Multiple teams own different parts. Agree on contracts (schema, SLA). No shared mutable state.</div></div>
+      <div class="card red"><div class="ct">Transport cost is zero</div><div class="cb">Serialization, connection setup, TLS handshakes, retries all cost real time and money.</div></div>
+      <div class="card red"><div class="ct">The network is homogeneous</div><div class="cb">Different services run on different hardware, OSes, and library versions.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CAP Theorem</div>
+    <div class="g2">
+      <div class="card"><div class="ct">CAP: Choose 2 of 3 during a partition</div><div class="cb"><strong style="color:var(--text)">C</strong>onsistency: every read returns the latest write (or an error).<br><strong style="color:var(--text)">A</strong>vailability: every request gets a response (no error, possibly stale).<br><strong style="color:var(--text)">P</strong>artition tolerance: system works despite network partition.<br><br>P is not optional — networks do partition. Real choice: <strong style="color:var(--cyan)">CP</strong> or <strong style="color:var(--amber)">AP</strong>.</div></div>
+      <div class="card"><div class="ct">Real-world examples</div><div class="cb"><span style="color:var(--cyan)">CP (prefer consistency)</span>: PostgreSQL, HBase, Zookeeper, etcd, CockroachDB<br><span style="color:var(--amber)">AP (prefer availability)</span>: Cassandra, CouchDB, DynamoDB (eventual), DNS<br><br>PACELC extends CAP: even without partition, there's a Latency vs Consistency tradeoff on every write.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Consistency Models (weakest → strongest)</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">Eventual</span><span class="sv">All replicas converge given no new writes. Reads may be stale. DNS updates, shopping carts, social media likes.</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">Read-your-writes</span><span class="sv">You always see your own writes. Other clients may not yet. Common safe default for user-facing apps.</span></div>
+      <div class="si"><span class="sk" style="color:var(--blue)">Monotonic reads</span><span class="sv">Once you read a value, you never read an older value. No time travel reads.</span></div>
+      <div class="si"><span class="sk" style="color:var(--purple)">Causal</span><span class="sv">Causally related operations seen in order by all. A reply always appears after the original comment.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Sequential</span><span class="sv">All processes see operations in the same order. Not necessarily real-time order.</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">Linearizable</span><span class="sv">Strongest. Every operation appears instantaneous. Very expensive. Used by etcd, Zookeeper for distributed locks.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Raft Consensus (used by etcd, CockroachDB, TiKV)</div>
+    <p class="body">Three states: Follower, Candidate, Leader. Leader election: follower times out → becomes candidate → sends RequestVote RPCs → gets majority → becomes leader. Log replication: leader appends entry → sends AppendEntries to followers → commits when majority acknowledge → applies to state machine. Quorum = ⌊n/2⌋ + 1. Always run an odd number of nodes (3 tolerates 1 failure, 5 tolerates 2 failures).</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Partitioning &amp; Replication</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Range Partitioning</div><div class="cb">Rows split by key range (A–M, N–Z or date ranges). Simple. Enables range queries. Hotspot risk if data is skewed — all writes go to the latest partition.</div></div>
+      <div class="card"><div class="ct">Hash Partitioning</div><div class="cb">hash(key) % N = partition. Uniform distribution. Kills range query ability. Consistent hashing minimizes reshuffling when adding/removing nodes (used by Cassandra, DynamoDB, CDNs).</div></div>
+      <div class="card"><div class="ct">Leader-Follower Replication</div><div class="cb">Leader handles writes, replicates to followers. Followers serve reads (possibly stale). Simple. Leader is a SPOF — needs failover automation (Patroni for Postgres).</div></div>
+      <div class="card"><div class="ct">Leaderless Replication</div><div class="cb">Any node accepts writes (quorum write W + quorum read R where W+R &gt; N). Dynamo-style. Cassandra. High availability. Conflict resolution needed (LWW or vector clocks).</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Distributed Design Patterns</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Circuit Breaker</div><div class="cb">Track failure rate. Open = fast-fail immediately (don't hammer a failing service). Half-open = probe if recovered. Closed = normal operation. Resilience4j, go-breaker.</div></div>
+      <div class="card"><div class="ct">Saga Pattern</div><div class="cb">Distributed transactions without 2PC. Sequence of local transactions, each publishing an event. Compensating transactions on failure. Choreography (events) vs Orchestration (central coordinator).</div></div>
+      <div class="card"><div class="ct">Outbox Pattern</div><div class="cb">Write to DB + outbox table in same transaction. Separate poller reads outbox and publishes to message broker. Guarantees exactly-once publishing even if app crashes.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 10 CONCURRENCY -->
+<div class="section" id="s-concur">
+  <div class="sec-head"><div class="sec-tag">// 10 · systems</div><div class="sec-title"><em>Concurrency</em> &amp; Parallelism</div><div class="sec-desc">Threads, mutexes, deadlocks, the actor model, async/await internals, Go concurrency patterns, and why data races are the most insidious class of bugs.</div></div>
+  <div class="sub">
+    <div class="sub-head">Concurrency vs Parallelism</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Concurrency</div><div class="cb">Multiple tasks making progress — possibly by interleaving on one core. About <em>structure and design</em>. You can have concurrency without parallelism (single-core async). Go goroutines, async/await, event loops.</div></div>
+      <div class="card purple"><div class="ct">Parallelism</div><div class="cb">Multiple tasks executing simultaneously on multiple CPU cores. About <em>physical execution</em>. Requires multiple cores. Data parallelism (SIMD) is parallelism without concurrency.</div></div>
+    </div>
+    <div class="info"><div class="ih">// ROB PIKE: "Concurrency is about dealing with lots of things at once. Parallelism is about doing lots of things at once."</div><p>Node.js is highly concurrent but (mostly) not parallel. Go is both concurrent AND parallel — goroutines are multiplexed onto GOMAXPROCS OS threads.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Synchronization Primitives</div>
+    <table class="tbl"><tr><th>Primitive</th><th>Guarantees</th><th>Use</th><th>Danger</th></tr>
+    <tr><td>Mutex</td><td>One goroutine/thread in critical section at a time</td><td>Protect shared mutable state</td><td>Deadlock if not released; contention degrades performance</td></tr>
+    <tr><td>RWMutex</td><td>Multiple concurrent readers OR one writer</td><td>Read-heavy shared state (config, caches)</td><td>Writer starvation if readers never pause</td></tr>
+    <tr><td>Semaphore</td><td>Allow at most N concurrent accesses</td><td>Connection pool limits, rate-limiting worker spawns</td><td>Forgetting to release on all exit paths</td></tr>
+    <tr><td>Condition Variable</td><td>Block until a condition becomes true, then signal/broadcast</td><td>Producer/consumer, bounded buffers</td><td>Spurious wakeups — always re-check condition in a loop</td></tr>
+    <tr><td>Channel (Go)</td><td>Communicate data between goroutines safely</td><td>"Don't share memory; communicate by sharing"</td><td>Deadlock if sender/receiver both block</td></tr>
+    <tr><td>Atomic ops</td><td>Lock-free read-modify-write on single machine word</td><td>Counters, flags, lock-free data structures</td><td>Cannot atomically coordinate across multiple variables</td></tr>
+    <tr><td>Once (sync.Once)</td><td>Execute a function exactly once across goroutines</td><td>Lazy singleton initialization</td><td>Panics in the function prevent future calls from succeeding</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Deadlock — The Four Coffman Conditions</div>
+    <div class="g4">
+      <div class="card red"><div class="ct">1. Mutual Exclusion</div><div class="cb">At least one resource held in non-sharable mode.</div></div>
+      <div class="card red"><div class="ct">2. Hold and Wait</div><div class="cb">Process holding a resource is waiting to acquire more.</div></div>
+      <div class="card red"><div class="ct">3. No Preemption</div><div class="cb">Resources can't be forcibly taken — only voluntarily released.</div></div>
+      <div class="card red"><div class="ct">4. Circular Wait</div><div class="cb">A → waits for B → waits for A. Break by imposing a global lock ordering.</div></div>
+    </div>
+    <div class="alert"><div class="ah">// PREVENTION: always acquire locks in the same global order</div><p>If every code path acquires mutex_A before mutex_B, circular wait is impossible. Use <code>go test -race</code> and <code>go vet</code> to detect data races. ThreadSanitizer (TSan) for C++. These catch entire classes of concurrency bugs before prod.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Go Concurrency Patterns</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>practical Go patterns</span><span class="lang">Go</span></div>
+<pre><span class="c">// WORKER POOL — bound goroutine count</span>
+jobs := make(<span class="k">chan</span> Job, 100)
+<span class="k">var</span> wg sync.WaitGroup
+<span class="k">for</span> i := 0; i &lt; numWorkers; i++ {
+    wg.Add(1)
+    <span class="k">go func</span>() {
+        <span class="k">defer</span> wg.Done()
+        <span class="k">for</span> j := <span class="k">range</span> jobs { process(j) }
+    }()
+}
+<span class="k">for</span> _, job := <span class="k">range</span> allJobs { jobs &lt;- job }
+close(jobs); wg.Wait()
+ 
+<span class="c">// CONTEXT CANCELLATION — propagate cancellation tree</span>
+ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+<span class="k">defer</span> cancel() <span class="c">// ALWAYS defer cancel</span>
+<span class="k">select</span> {
+    <span class="k">case</span> result := &lt;-workCh: handle(result)
+    <span class="k">case</span> &lt;-ctx.Done(): <span class="k">return</span> ctx.Err()
+}
+ 
+<span class="c">// ERRGROUP — coordinate goroutines with error propagation</span>
+g, ctx := errgroup.WithContext(ctx)
+<span class="k">for</span> _, url := <span class="k">range</span> urls {
+    url := url <span class="c">// capture loop var</span>
+    g.Go(<span class="k">func</span>() error { <span class="k">return</span> fetch(ctx, url) })
+}
+<span class="k">if</span> err := g.Wait(); err != nil { <span class="k">return</span> err }</pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Async/Await Internals (JavaScript)</div>
+    <div class="g2">
+      <div class="card"><div class="ct">How it works</div><div class="cb">async/await is syntactic sugar over Promises over the event loop. An <code>await</code> suspends the current async function and yields back to the event loop. The microtask queue picks it up when the Promise resolves. No new thread is created.</div></div>
+      <div class="card"><div class="ct">Common pitfall: sequential awaits</div><div class="cb"><code>await a(); await b();</code> runs serially — total time = a + b. Use <code>await Promise.all([a(), b()])</code> for parallel — total time = max(a, b). One of the most common performance bugs in Node.js code.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 11 ENVIRONMENT & CONFIG -->
+<div class="section" id="s-env">
+  <div class="sec-head"><div class="sec-tag">// 11 · engineering</div><div class="sec-title">Environment &amp; <em>Config</em></div><div class="sec-desc">12-factor principles, secrets vs config, feature flags, and how to ship the same artifact through dev, staging, and prod without rebuilding.</div></div>
+  <div class="sub">
+    <div class="sub-head">Twelve-Factor App (summary)</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Codebase · Dependencies · Config</div><div class="cb">One repo per app. Explicit dependency declaration (go.mod, package-lock). Config in environment — never committed secrets. Build produces one immutable artifact.</div></div>
+      <div class="card"><div class="ct">Backing services · Build/release/run</div><div class="cb">Treat DB/cache as attached resources (URLs in env). Strict separation: build = compile, release = build + config, run = execute. Never SSH to change prod.</div></div>
+      <div class="card"><div class="ct">Processes · Port binding · Concurrency</div><div class="cb">Stateless processes; sticky sessions are a smell. Export HTTP on <code>$PORT</code>. Scale out with process model (workers), not threads in one giant process.</div></div>
+      <div class="card"><div class="ct">Disposability · Dev/prod parity · Logs</div><div class="cb">Fast startup, graceful SIGTERM. Minimize drift: same Postgres major in dev as prod. Stream logs to stdout — platform aggregates.</div></div>
+      <div class="card"><div class="ct">Admin processes · One-off tasks</div><div class="cb">Migrations and console jobs run as one-off processes with same release as app — same codebase, same config version.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Secrets Management</div>
+    <table class="tbl"><tr><th>Approach</th><th>When</th><th>Never</th></tr>
+    <tr><td>Vault / AWS Secrets Manager / GCP Secret Manager</td><td>Production — rotation, audit, least privilege</td><td>Plain env vars in CI logs</td></tr>
+    <tr><td>Injected at deploy time (K8s secrets, ECS)</td><td>Runtime only — not in image layers</td><td>Committing <code>.env</code> to git</td></tr>
+    <tr><td>Short-lived tokens (OIDC, IAM roles)</td><td>Prefer over long-lived API keys</td><td>Sharing root credentials in Slack</td></tr></table>
+    <div class="alert"><div class="ah">// SECRET SCANNING</div><p>Enable GitHub secret scanning, gitleaks, or trufflehog in CI. A leaked key in history is forever — rotate immediately and use scoped keys per service.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Feature Flags</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Release vs experiment</div><div class="cb"><strong>Release flags</strong> hide incomplete work; remove after launch. <strong>Experiment flags</strong> drive A/B tests with metrics — owned by product/analytics.</div></div>
+      <div class="card purple"><div class="ct">Kill switches</div><div class="cb">Flags that turn off expensive paths (third-party API, new code path) without deploy. Must be observable — log flag state on critical paths.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 TESTING STRATEGY -->
+<div class="section" id="s-testing">
+  <div class="sec-head"><div class="sec-tag">// 12 · engineering</div><div class="sec-title"><em>Testing</em> Strategy</div><div class="sec-desc">The test pyramid, contract tests, property-based testing, and where to invest so failures happen before production — not after.</div></div>
+  <div class="sub">
+    <div class="sub-head">Test Pyramid</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">Unit</span><span class="sv">Many, fast, isolated. Mock external I/O. Cover pure logic and edge cases. Run on every commit.</span><span class="sr">70%</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">Integration</span><span class="sv">Real DB, real queue, real HTTP — but in-process or docker-compose. Catch wiring bugs. Slower than unit.</span><span class="sr">20%</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">E2E / UI</span><span class="sv">Full browser or API black-box. Flaky, expensive. Critical user journeys only. Run nightly or pre-release.</span><span class="sr">10%</span></div>
+    </div>
+    <div class="info"><div class="ih">// ICE CREAM CONE ANTI-PATTERN</div><p>Most tests are E2E, few unit tests — slow CI, brittle feedback. Invert: push confidence down the pyramid.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Test Types at a Glance</div>
+    <table class="tbl"><tr><th>Type</th><th>Validates</th><th>Tools</th></tr>
+    <tr><td>Contract (consumer-driven)</td><td>API schema matches what clients expect</td><td>Pact, Spring Cloud Contract</td></tr>
+    <tr><td>Snapshot</td><td>UI or JSON output unchanged (guard against drift)</td><td>Jest, Vitest — review diffs carefully</td></tr>
+    <tr><td>Property-based</td><td>Invariants hold for random inputs</td><td>Hypothesis, fast-check, QuickCheck</td></tr>
+    <tr><td>Mutation testing</td><td>Tests actually kill mutants (assertions work)</td><td>Stryker, mutmut</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Determinism &amp; Flakes</div>
+    <div class="g2">
+      <div class="card red"><div class="ct">Common flake sources</div><div class="cb">Time (<code>now()</code>), random IDs, async without await, shared global state, order-dependent assertions, real network in unit tests.</div></div>
+      <div class="card green"><div class="ct">Fixes</div><div class="cb">Inject clocks; seed RNG; fake timers; retry only at E2E layer with cap; quarantine flaky tests until fixed — never ignore permanently.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 13 CI/CD & GITOPS -->
+<div class="section" id="s-cicd">
+  <div class="sec-head"><div class="sec-tag">// 13 · engineering</div><div class="sec-title">CI/CD &amp; <em>GitOps</em></div><div class="sec-desc">Pipelines, trunk-based development, deployment strategies, and reconciling desired state in Git with what actually runs in the cluster.</div></div>
+  <div class="sub">
+    <div class="sub-head">CI Pipeline Stages</div>
+    <div class="flow"><span class="fs">lint</span><span class="fa">→</span><span class="fs">unit</span><span class="fa">→</span><span class="fs">build artifact</span><span class="fa">→</span><span class="fs">integration</span><span class="fa">→</span><span class="fs">security scan</span><span class="fa">→</span><span class="fs">publish</span></div>
+    <p class="body">Fail fast: cheapest checks first. Same Dockerfile / same build for all envs — config differs, image tag is immutable.</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Deployment Strategies</div>
+    <table class="tbl"><tr><th>Strategy</th><th>Risk</th><th>Rollback</th></tr>
+    <tr><td>Rolling</td><td>Low — replace instances gradually</td><td>Slow — old code still serving during rollout</td></tr>
+    <tr><td>Blue/Green</td><td>Two full envs; instant switch</td><td>Fast — flip traffic back</td></tr>
+    <tr><td>Canary</td><td>Route small % to new version; promote on metrics</td><td>Automatic if error rate spikes</td></tr>
+    <tr><td>Feature flags + trunk</td><td>Ship dark; enable gradually</td><td>Toggle off — no redeploy</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">GitOps (Argo CD, Flux)</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Desired state in Git</div><div class="cb">K8s manifests or Helm values committed. Controller continuously reconciles cluster → Git. Drift = alert or auto-heal.</div></div>
+      <div class="card"><div class="ct">PR as change gate</div><div class="cb">Prod promotion = merge to <code>main</code> or release branch. Audit trail built in. Rollback = revert commit.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 14 PERFORMANCE -->
+<div class="section" id="s-perf">
+  <div class="sec-head"><div class="sec-tag">// 14 · engineering</div><div class="sec-title"><em>Performance</em></div><div class="sec-desc">Latency vs throughput, profiling, caching layers, and the discipline of measuring before optimizing — because intuition lies.</div></div>
+  <div class="sub">
+    <div class="sub-head">Latency Budget</div>
+    <p class="body">If p99 API SLO is 200ms and you have 5 hops (LB, gateway, service, DB, cache), each hop gets a slice — often ~20–40ms max. Serial chains multiply; parallelize independent work.</p>
+    <div class="g2">
+      <div class="card"><div class="ct">Little's Law</div><div class="cb"><code>L = λ × W</code> — average items in system = arrival rate × average time in system. Queue depth explodes when utilization → 100%.</div></div>
+      <div class="card"><div class="ct">Tail latency</div><div class="cb">p99 matters more than mean. One slow dependency in a fan-out poisons the whole request — hedging, timeouts, bulkhead isolation.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Caching Layers</div>
+    <table class="tbl"><tr><th>Layer</th><th>TTL</th><th>Invalidation</th></tr>
+    <tr><td>Browser / CDN</td><td>Minutes–days</td><td>Cache-Control, purge API, versioned URLs</td></tr>
+    <tr><td>Application (Redis)</td><td>Seconds–hours</td><td>TTL + explicit delete on write; watch stale reads</td></tr>
+    <tr><td>Database</td><td>Buffer pool</td><td>Query plan cache; connection pooling limits</td></tr></table>
+    <div class="warn"><div class="wh">// CACHE STAMPEDE</div><p>Many clients miss at once → thundering herd to DB. Mitigate: single-flight, request coalescing, probabilistic early expiration.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Profiling Mindset</div>
+    <div class="g3">
+      <div class="card"><div class="ct">CPU</div><div class="cb">Flame graphs — wide bars = hot code. Often allocation or regex, not algorithm.</div></div>
+      <div class="card"><div class="ct">Heap</div><div class="cb">Allocation profiles find unnecessary copies and boxed primitives.</div></div>
+      <div class="card"><div class="ct">Wall time</div><div class="cb">Async I/O shows as waiting — trace across services (OpenTelemetry).</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 15 OBSERVABILITY -->
+<div class="section" id="s-obs">
+  <div class="sec-head"><div class="sec-tag">// 15 · engineering</div><div class="sec-title"><em>Observability</em></div><div class="sec-desc">The three pillars used correctly: metrics for aggregates, logs for context, traces for causality — plus SLOs and actionable alerts.</div></div>
+  <div class="sub">
+    <div class="sub-head">Three Pillars</div>
+    <div class="g3">
+      <div class="card cyan"><div class="ct">Metrics</div><div class="cb">Counters, gauges, histograms. RED: Rate, Errors, Duration per service. Cardinality explosion = death — avoid high-cardinality labels in Prometheus.</div></div>
+      <div class="card purple"><div class="ct">Logs</div><div class="cb">Structured JSON with <code>trace_id</code>, <code>level</code>, <code>msg</code>. Correlate with traces. Sampling for high volume.</div></div>
+      <div class="card amber"><div class="ct">Traces</div><div class="cb">Distributed spans with parent span ID. Shows which downstream call burned latency. W3C trace context propagation across HTTP/gRPC.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SLO / SLI / SLA</div>
+    <div class="g2">
+      <div class="card"><div class="ct">SLI</div><div class="cb">What you measure — e.g. ratio of successful HTTP 2xx / total requests over 30 days.</div></div>
+      <div class="card"><div class="ct">SLO</div><div class="cb">Target — e.g. 99.9% availability monthly. Error budget = allowed downtime — spend on velocity or freeze releases.</div></div>
+      <div class="card"><div class="ct">SLA</div><div class="cb">Contract with customers — credits or penalties if breached. Stricter than internal SLO.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Alerting That Wakes Humans</div>
+    <div class="alert"><div class="ah">// PAGES ONLY FOR ACTIONABLE</div><p>Symptom-based alerts (p99 latency, error rate) over cause-based (CPU &gt; 80% — might be fine). Runbooks linked from alert. No alert = no one looks at dashboards.</p></div>
+  </div>
+</div>
+
+<!-- 16 SECURITY (ZTA) -->
+<div class="section" id="s-security">
+  <div class="sec-head"><div class="sec-tag">// 16 · security</div><div class="sec-title">Security &amp; <em>Zero Trust</em></div><div class="sec-desc">Assume breach: verify explicitly, least privilege, and defense in depth — from identity to workload to data at rest.</div></div>
+  <div class="sub">
+    <div class="sub-head">Zero Trust Principles</div>
+    <div class="g2">
+      <div class="card red"><div class="ct">Never trust the network</div><div class="cb">mTLS between services. No "trusted internal VLAN" — lateral movement is the attacker's goal after one phished laptop.</div></div>
+      <div class="card green"><div class="ct">Verify every request</div><div class="cb">OIDC/OAuth2 for users, SPIFFE/SPIRE or cloud IAM for workloads. Short-lived tokens. RBAC + ABAC where needed.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">OWASP Top Risks (web)</div>
+    <table class="tbl"><tr><th>Risk</th><th>Mitigation</th></tr>
+    <tr><td>Injection (SQL, command)</td><td>Parameterized queries; never concatenate user input into shell</td></tr>
+    <tr><td>Broken access control</td><td>Authorize every route — IDOR checks (user owns resource)</td></tr>
+    <tr><td>SSRF</td><td>Block internal IPs from user-supplied URLs; allowlists</td></tr>
+    <tr><td>XSS</td><td>Context-aware escaping; CSP headers; avoid <code>dangerouslySetInnerHTML</code></td></tr>
+    <tr><td>CSRF</td><td>SameSite cookies + anti-CSRF tokens for state-changing requests</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Dependency &amp; Supply Chain</div>
+    <p class="body">Lockfiles, SBOM (CycloneDX), signed images (cosign), Dependabot/Renovate, and review before merging major upgrades. SLSA levels describe build integrity.</p>
+  </div>
+</div>
+
+<!-- 17 CRYPTOGRAPHY -->
+<div class="section" id="s-crypto">
+  <div class="sec-head"><div class="sec-tag">// 17 · security</div><div class="sec-title"><em>Cryptography</em></div><div class="sec-desc">Use libraries — never roll your own primitives. Know what to use for hashing, encryption, and key exchange.</div></div>
+  <div class="sub">
+    <div class="sub-head">Building Blocks</div>
+    <table class="tbl"><tr><th>Need</th><th>Use</th><th>Avoid</th></tr>
+    <tr><td>Password storage</td><td>Argon2id, scrypt, bcrypt (with adequate work factor)</td><td>MD5, SHA-256 alone</td></tr>
+    <tr><td>Symmetric encryption</td><td>AES-GCM or ChaCha20-Poly1305</td><td>AES-ECB, CBC without auth</td></tr>
+    <tr><td>Asymmetric</td><td>Ed25519, X25519, ECDSA P-256 (well-configured)</td><td>RSA with PKCS#1 v1.5 padding for new systems</td></tr>
+    <tr><td>Integrity</td><td>HMAC-SHA256 or keyed BLAKE2</td><td>Plain SHA for message auth</td></tr>
+    <tr><td>Randomness</td><td>OS CSPRNG (<code>/dev/urandom</code>, <code>crypto.randomBytes</code>)</td><td>Math.random, timestamps</td></tr></table>
+    <div class="info"><div class="ih">// AEAD</div><p>Authenticated encryption (GCM, ChaPoly) gives confidentiality + integrity in one API — prevents bit-flipping attacks.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">TLS</div>
+    <p class="body">TLS 1.2+ only; prefer TLS 1.3. Certificate pinning only when you control clients. HSTS after HTTPS is stable. Never mixed content.</p>
+  </div>
+</div>
+
+<!-- 18 AI COLLABORATION -->
+<div class="section" id="s-ai">
+  <div class="sec-head"><div class="sec-tag">// 18 · security &amp; ai</div><div class="sec-title">AI <em>Collaboration</em></div><div class="sec-desc">How to pair with LLMs safely: context windows, prompt hygiene, verification, and keeping secrets out of prompts.</div></div>
+  <div class="sub">
+    <div class="sub-head">Effective Practices</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Ground truth</div><div class="cb">Paste relevant files, error messages, and constraints. Vague prompts get plausible garbage.</div></div>
+      <div class="card purple"><div class="ct">Verify everything</div><div class="cb">Run tests, read diffs, check security implications. Models optimize for plausibility, not correctness.</div></div>
+      <div class="card amber"><div class="ct">No secrets in prompts</div><div class="cb">Treat vendor APIs as untrusted for retention. Use env vars locally; redact in examples.</div></div>
+      <div class="card green"><div class="ct">Iterative refinement</div><div class="cb">Small steps: generate interface → implement → test → fix. Better than one-shot mega-prompts.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Risks</div>
+    <ul class="rlist">
+      <li><i>·</i><strong>Hallucinated APIs</strong> — always check docs for functions that don't exist.</li>
+      <li><i>·</i><strong>License</strong> — generated code may resemble training data; review for compliance.</li>
+      <li><i>·</i><strong>Prompt injection</strong> — untrusted content in RAG or user messages can override instructions.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 19 ML FUNDAMENTALS -->
+<div class="section" id="s-ml">
+  <div class="sec-head"><div class="sec-tag">// 19 · security &amp; ai</div><div class="sec-title">ML <em>Fundamentals</em></div><div class="sec-desc">Supervised vs unsupervised, bias/variance, evaluation metrics, and operational concerns for models in production.</div></div>
+  <div class="sub">
+    <div class="sub-head">Learning Paradigms</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Supervised</div><div class="cb">Labeled data: classification, regression. Train/validation/test split — never tune on test set.</div></div>
+      <div class="card"><div class="ct">Unsupervised</div><div class="cb">Clustering, dimensionality reduction — no labels; interpret carefully.</div></div>
+      <div class="card"><div class="ct">Reinforcement</div><div class="cb">Agent + environment + reward — expensive to sample; safety critical in robotics.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Metrics</div>
+    <table class="tbl"><tr><th>Task</th><th>Metrics</th></tr>
+    <tr><td>Classification</td><td>Precision, recall, F1, ROC-AUC — pick based on cost of FP vs FN</td></tr>
+    <tr><td>Regression</td><td>MAE, RMSE, MAPE — outliers dominate RMSE</td></tr>
+    <tr><td>Ranking</td><td>NDCG, MRR</td></tr></table>
+    <div class="warn"><div class="wh">// DATA DRIFT</div><p>Production distribution shifts — monitor input and output distributions; retrain or recalibrate on schedule.</p></div>
+  </div>
+</div>
+
+<!-- 20 FRONTEND SYSTEMS -->
+<div class="section" id="s-fe">
+  <div class="sec-head"><div class="sec-tag">// 20 · frontend</div><div class="sec-title">Frontend <em>Systems</em></div><div class="sec-desc">Browser rendering pipeline, critical rendering path, hydration, and performance budgets for real users on slow devices.</div></div>
+  <div class="sub">
+    <div class="sub-head">Rendering Pipeline (simplified)</div>
+    <div class="flow"><span class="fs">HTML</span><span class="fa">→</span><span class="fs">DOM</span><span class="fa">→</span><span class="fs">CSSOM</span><span class="fa">→</span><span class="fs">Render tree</span><span class="fa">→</span><span class="fs">Layout</span><span class="fa">→</span><span class="fs">Paint</span><span class="fa">→</span><span class="fs">Composite</span></div>
+    <p class="body">JS can block parsing (unless <code>defer</code>/<code>async</code>). Large layout thrashing = read/write/read DOM in a loop — batch reads then writes.</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Web Vitals (Core)</div>
+    <div class="srow">
+      <div class="si"><span class="sk">LCP</span><span class="sv">Largest Contentful Paint — loading performance. Target &lt;2.5s.</span></div>
+      <div class="si"><span class="sk">INP</span><span class="sv">Interaction to Next Paint — responsiveness. Target &lt;200ms.</span></div>
+      <div class="si"><span class="sk">CLS</span><span class="sv">Cumulative Layout Shift — visual stability. Target &lt;0.1.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SPA / SSR / SSG</div>
+    <div class="g2">
+      <div class="card"><div class="ct">CSR</div><div class="cb">Client renders — fast navigations after load, poor first paint without care.</div></div>
+      <div class="card"><div class="ct">SSR</div><div class="cb">Server sends HTML — good SEO and FCP; cost per request.</div></div>
+      <div class="card"><div class="ct">SSG</div><div class="cb">Pre-render at build — best for content; rebuild on change.</div></div>
+      <div class="card"><div class="ct">Hydration</div><div class="cb">Attach event listeners to server HTML — mismatch = bugs and double work; partial hydration reduces cost.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 21 LANGUAGE THEORY -->
+<div class="section" id="s-lang">
+  <div class="sec-head"><div class="sec-tag">// 21 · frontend &amp; language</div><div class="sec-title">Language <em>Theory</em></div><div class="sec-desc">Chomsky hierarchy, parsing strategies, and how type systems catch bugs at compile time.</div></div>
+  <div class="sub">
+    <div class="sub-head">Chomsky Hierarchy</div>
+    <table class="tbl"><tr><th>Type</th><th>Grammar</th><th>Automaton</th><th>Example</th></tr>
+    <tr><td>Type 3 — Regular</td><td>Finite</td><td>Finite state machine</td><td>Keywords, lex tokens</td></tr>
+    <tr><td>Type 2 — Context-free</td><td>Pushdown</td><td>PDA</td><td>Most programming syntax</td></tr>
+    <tr><td>Type 1 — Context-sensitive</td><td>Linear-bounded</td><td>Linear bounded automaton</td><td>Rarer in PL design</td></tr>
+    <tr><td>Type 0 — Unrestricted</td><td>Turing-complete</td><td>Turing machine</td><td>Template metaprogramming, macros</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Type Systems</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Static vs dynamic</div><div class="cb">Static: errors before run (with soundness caveats). Dynamic: flexibility, runtime type tags.</div></div>
+      <div class="card"><div class="ct">Structural vs nominal</div><div class="cb">TypeScript: structural — shape matters. Java: nominal — name matters.</div></div>
+      <div class="card"><div class="ct">Variance</div><div class="cb">Covariance/contravariance in generics — function params often contravariant; returns covariant.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 22 COMPILERS -->
+<div class="section" id="s-compilers">
+  <div class="sec-head"><div class="sec-tag">// 22 · frontend &amp; language</div><div class="sec-title"><em>Compilers</em></div><div class="sec-desc">Lexing, parsing, IR, optimization, and codegen — the pipeline from source text to machine code.</div></div>
+  <div class="sub">
+    <div class="sub-head">Phases</div>
+    <div class="flow"><span class="fs">Lexer</span><span class="fa">→</span><span class="fs">Parser</span><span class="fa">→</span><span class="fs">AST</span><span class="fa">→</span><span class="fs">Semantic analysis</span><span class="fa">→</span><span class="fs">IR</span><span class="fa">→</span><span class="fs">Optimize</span><span class="fa">→</span><span class="fs">Codegen</span></div>
+    <p class="body">Lexer: regex → tokens. Parser: CFG → AST (LL, LR, PEG). SSA form enables many optimizations (constant folding, dead code elimination).</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">JIT vs AOT</div>
+    <div class="g2">
+      <div class="card"><div class="ct">AOT</div><div class="cb">Compile before run — predictable startup, native binaries (Go, Rust).</div></div>
+      <div class="card"><div class="ct">JIT</div><div class="cb">Profile-guided optimization at runtime — JVM, V8. Warmup latency, peak performance.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 23 DESIGN PATTERNS -->
+<div class="section" id="s-design">
+  <div class="sec-head"><div class="sec-tag">// 23 · reference</div><div class="sec-title">Design <em>Patterns</em></div><div class="sec-desc">GoF classics and architectural patterns — vocabulary for structure, not an excuse for over-engineering.</div></div>
+  <div class="sub">
+    <div class="sub-head">GoF (selected)</div>
+    <table class="tbl"><tr><th>Pattern</th><th>Intent</th></tr>
+    <tr><td>Strategy</td><td>Family of interchangeable algorithms</td></tr>
+    <tr><td>Observer</td><td>Notify dependents of state changes</td></tr>
+    <tr><td>Factory</td><td>Encapsulate object creation</td></tr>
+    <tr><td>Adapter</td><td>Wrap incompatible interfaces</td></tr>
+    <tr><td>Decorator</td><td>Add behavior without subclass explosion</td></tr>
+    <tr><td>Singleton</td><td>One instance — often an antipattern in testable code; prefer DI</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Architectural</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Layered</div><div class="cb">Presentation → domain → data — clear boundaries, watch for leaky abstractions.</div></div>
+      <div class="card"><div class="ct">Hexagonal</div><div class="cb">Ports and adapters — domain core independent of DB/UI.</div></div>
+      <div class="card"><div class="ct">Event-driven</div><div class="cb">Loose coupling via messages — eventual consistency, ordering complexity.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 24 GOLDEN RULES -->
+<div class="section" id="s-rules">
+  <div class="sec-head"><div class="sec-tag">// 24 · reference</div><div class="sec-title"><em>Golden</em> Rules</div><div class="sec-desc">Short principles worth internalizing — the checklist before you ship, refactor, or declare victory.</div></div>
+  <div class="sub">
+    <div class="sub-head">Ship</div>
+    <div class="grule"><div class="gr-num">01</div><div class="gr-text">Make it work, make it right, make it fast — in that order.</div><div class="gr-why">Optimization without correctness is waste.</div></div>
+    <div class="grule"><div class="gr-num">02</div><div class="gr-text">The database is the hardest thing to change — design schemas with migrations in mind.</div><div class="gr-why">Backward-compatible deploys require expand-contract patterns.</div></div>
+    <div class="grule"><div class="gr-num">03</div><div class="gr-text">Observability is not optional — if you cannot measure it, you cannot fix it at 3am.</div><div class="gr-why">Metrics, logs, traces — pick a stack and instrument consistently.</div></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Safety</div>
+    <div class="grule"><div class="gr-num">04</div><div class="gr-text">Never trust input — validate at boundaries, encode on output.</div><div class="gr-why">XSS, injection, and SSRF all start with trusting the wrong bytes.</div></div>
+    <div class="grule"><div class="gr-num">05</div><div class="gr-text">Least privilege everywhere — humans, services, and CI tokens.</div><div class="gr-why">Blast radius limits when credentials leak.</div></div>
+    <div class="grule"><div class="gr-num">06</div><div class="gr-text">Secrets belong in vaults and env at runtime — never in repos or images.</div><div class="gr-why">Git history is forever.</div></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Collaboration</div>
+    <div class="grule"><div class="gr-num">07</div><div class="gr-text">Small PRs, clear commits, tests that fail for the right reason.</div><div class="gr-why">Review quality drops with diff size.</div></div>
+    <div class="grule"><div class="gr-num">08</div><div class="gr-text">Document decisions (ADR) — future you will not remember the tradeoff.</div><div class="gr-why">Context beats heroic recall.</div></div>
+    <div class="info"><div class="ih">// TL;DR</div><p>Correctness first, security by default, observable systems, kind code reviews. Everything else is commentary.</p></div>
+  </div>
+</div>
+
+</main>
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- Use npm run dev or npm run preview — opening this file via file:// will not load ES modules. -->
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

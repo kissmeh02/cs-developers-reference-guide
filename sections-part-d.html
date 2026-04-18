@@ -1,0 +1,137 @@
+<!-- 11 ENVIRONMENT & CONFIG -->
+<div class="section" id="s-env">
+  <div class="sec-head"><div class="sec-tag">// 11 · engineering</div><div class="sec-title">Environment &amp; <em>Config</em></div><div class="sec-desc">12-factor principles, secrets vs config, feature flags, and how to ship the same artifact through dev, staging, and prod without rebuilding.</div></div>
+  <div class="sub">
+    <div class="sub-head">Twelve-Factor App (summary)</div>
+    <div class="g3">
+      <div class="card"><div class="ct">Codebase · Dependencies · Config</div><div class="cb">One repo per app. Explicit dependency declaration (go.mod, package-lock). Config in environment — never committed secrets. Build produces one immutable artifact.</div></div>
+      <div class="card"><div class="ct">Backing services · Build/release/run</div><div class="cb">Treat DB/cache as attached resources (URLs in env). Strict separation: build = compile, release = build + config, run = execute. Never SSH to change prod.</div></div>
+      <div class="card"><div class="ct">Processes · Port binding · Concurrency</div><div class="cb">Stateless processes; sticky sessions are a smell. Export HTTP on <code>$PORT</code>. Scale out with process model (workers), not threads in one giant process.</div></div>
+      <div class="card"><div class="ct">Disposability · Dev/prod parity · Logs</div><div class="cb">Fast startup, graceful SIGTERM. Minimize drift: same Postgres major in dev as prod. Stream logs to stdout — platform aggregates.</div></div>
+      <div class="card"><div class="ct">Admin processes · One-off tasks</div><div class="cb">Migrations and console jobs run as one-off processes with same release as app — same codebase, same config version.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Secrets Management</div>
+    <table class="tbl"><tr><th>Approach</th><th>When</th><th>Never</th></tr>
+    <tr><td>Vault / AWS Secrets Manager / GCP Secret Manager</td><td>Production — rotation, audit, least privilege</td><td>Plain env vars in CI logs</td></tr>
+    <tr><td>Injected at deploy time (K8s secrets, ECS)</td><td>Runtime only — not in image layers</td><td>Committing <code>.env</code> to git</td></tr>
+    <tr><td>Short-lived tokens (OIDC, IAM roles)</td><td>Prefer over long-lived API keys</td><td>Sharing root credentials in Slack</td></tr></table>
+    <div class="alert"><div class="ah">// SECRET SCANNING</div><p>Enable GitHub secret scanning, gitleaks, or trufflehog in CI. A leaked key in history is forever — rotate immediately and use scoped keys per service.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Feature Flags</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Release vs experiment</div><div class="cb"><strong>Release flags</strong> hide incomplete work; remove after launch. <strong>Experiment flags</strong> drive A/B tests with metrics — owned by product/analytics.</div></div>
+      <div class="card purple"><div class="ct">Kill switches</div><div class="cb">Flags that turn off expensive paths (third-party API, new code path) without deploy. Must be observable — log flag state on critical paths.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 TESTING STRATEGY -->
+<div class="section" id="s-testing">
+  <div class="sec-head"><div class="sec-tag">// 12 · engineering</div><div class="sec-title"><em>Testing</em> Strategy</div><div class="sec-desc">The test pyramid, contract tests, property-based testing, and where to invest so failures happen before production — not after.</div></div>
+  <div class="sub">
+    <div class="sub-head">Test Pyramid</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">Unit</span><span class="sv">Many, fast, isolated. Mock external I/O. Cover pure logic and edge cases. Run on every commit.</span><span class="sr">70%</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">Integration</span><span class="sv">Real DB, real queue, real HTTP — but in-process or docker-compose. Catch wiring bugs. Slower than unit.</span><span class="sr">20%</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">E2E / UI</span><span class="sv">Full browser or API black-box. Flaky, expensive. Critical user journeys only. Run nightly or pre-release.</span><span class="sr">10%</span></div>
+    </div>
+    <div class="info"><div class="ih">// ICE CREAM CONE ANTI-PATTERN</div><p>Most tests are E2E, few unit tests — slow CI, brittle feedback. Invert: push confidence down the pyramid.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Test Types at a Glance</div>
+    <table class="tbl"><tr><th>Type</th><th>Validates</th><th>Tools</th></tr>
+    <tr><td>Contract (consumer-driven)</td><td>API schema matches what clients expect</td><td>Pact, Spring Cloud Contract</td></tr>
+    <tr><td>Snapshot</td><td>UI or JSON output unchanged (guard against drift)</td><td>Jest, Vitest — review diffs carefully</td></tr>
+    <tr><td>Property-based</td><td>Invariants hold for random inputs</td><td>Hypothesis, fast-check, QuickCheck</td></tr>
+    <tr><td>Mutation testing</td><td>Tests actually kill mutants (assertions work)</td><td>Stryker, mutmut</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Determinism &amp; Flakes</div>
+    <div class="g2">
+      <div class="card red"><div class="ct">Common flake sources</div><div class="cb">Time (<code>now()</code>), random IDs, async without await, shared global state, order-dependent assertions, real network in unit tests.</div></div>
+      <div class="card green"><div class="ct">Fixes</div><div class="cb">Inject clocks; seed RNG; fake timers; retry only at E2E layer with cap; quarantine flaky tests until fixed — never ignore permanently.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 13 CI/CD & GITOPS -->
+<div class="section" id="s-cicd">
+  <div class="sec-head"><div class="sec-tag">// 13 · engineering</div><div class="sec-title">CI/CD &amp; <em>GitOps</em></div><div class="sec-desc">Pipelines, trunk-based development, deployment strategies, and reconciling desired state in Git with what actually runs in the cluster.</div></div>
+  <div class="sub">
+    <div class="sub-head">CI Pipeline Stages</div>
+    <div class="flow"><span class="fs">lint</span><span class="fa">→</span><span class="fs">unit</span><span class="fa">→</span><span class="fs">build artifact</span><span class="fa">→</span><span class="fs">integration</span><span class="fa">→</span><span class="fs">security scan</span><span class="fa">→</span><span class="fs">publish</span></div>
+    <p class="body">Fail fast: cheapest checks first. Same Dockerfile / same build for all envs — config differs, image tag is immutable.</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Deployment Strategies</div>
+    <table class="tbl"><tr><th>Strategy</th><th>Risk</th><th>Rollback</th></tr>
+    <tr><td>Rolling</td><td>Low — replace instances gradually</td><td>Slow — old code still serving during rollout</td></tr>
+    <tr><td>Blue/Green</td><td>Two full envs; instant switch</td><td>Fast — flip traffic back</td></tr>
+    <tr><td>Canary</td><td>Route small % to new version; promote on metrics</td><td>Automatic if error rate spikes</td></tr>
+    <tr><td>Feature flags + trunk</td><td>Ship dark; enable gradually</td><td>Toggle off — no redeploy</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">GitOps (Argo CD, Flux)</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Desired state in Git</div><div class="cb">K8s manifests or Helm values committed. Controller continuously reconciles cluster → Git. Drift = alert or auto-heal.</div></div>
+      <div class="card"><div class="ct">PR as change gate</div><div class="cb">Prod promotion = merge to <code>main</code> or release branch. Audit trail built in. Rollback = revert commit.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 14 PERFORMANCE -->
+<div class="section" id="s-perf">
+  <div class="sec-head"><div class="sec-tag">// 14 · engineering</div><div class="sec-title"><em>Performance</em></div><div class="sec-desc">Latency vs throughput, profiling, caching layers, and the discipline of measuring before optimizing — because intuition lies.</div></div>
+  <div class="sub">
+    <div class="sub-head">Latency Budget</div>
+    <p class="body">If p99 API SLO is 200ms and you have 5 hops (LB, gateway, service, DB, cache), each hop gets a slice — often ~20–40ms max. Serial chains multiply; parallelize independent work.</p>
+    <div class="g2">
+      <div class="card"><div class="ct">Little's Law</div><div class="cb"><code>L = λ × W</code> — average items in system = arrival rate × average time in system. Queue depth explodes when utilization → 100%.</div></div>
+      <div class="card"><div class="ct">Tail latency</div><div class="cb">p99 matters more than mean. One slow dependency in a fan-out poisons the whole request — hedging, timeouts, bulkhead isolation.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Caching Layers</div>
+    <table class="tbl"><tr><th>Layer</th><th>TTL</th><th>Invalidation</th></tr>
+    <tr><td>Browser / CDN</td><td>Minutes–days</td><td>Cache-Control, purge API, versioned URLs</td></tr>
+    <tr><td>Application (Redis)</td><td>Seconds–hours</td><td>TTL + explicit delete on write; watch stale reads</td></tr>
+    <tr><td>Database</td><td>Buffer pool</td><td>Query plan cache; connection pooling limits</td></tr></table>
+    <div class="warn"><div class="wh">// CACHE STAMPEDE</div><p>Many clients miss at once → thundering herd to DB. Mitigate: single-flight, request coalescing, probabilistic early expiration.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Profiling Mindset</div>
+    <div class="g3">
+      <div class="card"><div class="ct">CPU</div><div class="cb">Flame graphs — wide bars = hot code. Often allocation or regex, not algorithm.</div></div>
+      <div class="card"><div class="ct">Heap</div><div class="cb">Allocation profiles find unnecessary copies and boxed primitives.</div></div>
+      <div class="card"><div class="ct">Wall time</div><div class="cb">Async I/O shows as waiting — trace across services (OpenTelemetry).</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 15 OBSERVABILITY -->
+<div class="section" id="s-obs">
+  <div class="sec-head"><div class="sec-tag">// 15 · engineering</div><div class="sec-title"><em>Observability</em></div><div class="sec-desc">The three pillars used correctly: metrics for aggregates, logs for context, traces for causality — plus SLOs and actionable alerts.</div></div>
+  <div class="sub">
+    <div class="sub-head">Three Pillars</div>
+    <div class="g3">
+      <div class="card cyan"><div class="ct">Metrics</div><div class="cb">Counters, gauges, histograms. RED: Rate, Errors, Duration per service. Cardinality explosion = death — avoid high-cardinality labels in Prometheus.</div></div>
+      <div class="card purple"><div class="ct">Logs</div><div class="cb">Structured JSON with <code>trace_id</code>, <code>level</code>, <code>msg</code>. Correlate with traces. Sampling for high volume.</div></div>
+      <div class="card amber"><div class="ct">Traces</div><div class="cb">Distributed spans with parent span ID. Shows which downstream call burned latency. W3C trace context propagation across HTTP/gRPC.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">SLO / SLI / SLA</div>
+    <div class="g2">
+      <div class="card"><div class="ct">SLI</div><div class="cb">What you measure — e.g. ratio of successful HTTP 2xx / total requests over 30 days.</div></div>
+      <div class="card"><div class="ct">SLO</div><div class="cb">Target — e.g. 99.9% availability monthly. Error budget = allowed downtime — spend on velocity or freeze releases.</div></div>
+      <div class="card"><div class="ct">SLA</div><div class="cb">Contract with customers — credits or penalties if breached. Stricter than internal SLO.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Alerting That Wakes Humans</div>
+    <div class="alert"><div class="ah">// PAGES ONLY FOR ACTIONABLE</div><p>Symptom-based alerts (p99 latency, error rate) over cause-based (CPU &gt; 80% — might be fine). Runbooks linked from alert. No alert = no one looks at dashboards.</p></div>
+  </div>
+</div>

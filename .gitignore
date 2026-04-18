@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Logs & caches
+*.log
+npm-debug.log*
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local overrides
+*.local
+
+# Optional tooling
+coverage/

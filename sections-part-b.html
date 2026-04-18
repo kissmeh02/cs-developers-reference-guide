@@ -1,0 +1,289 @@
+<!-- 02 DATA STRUCTURES -->
+<div class="section" id="s-ds">
+  <div class="sec-head"><div class="sec-tag">// 02 · foundations</div><div class="sec-title">Data <em>Structures</em></div><div class="sec-desc">Every data structure with time/space complexity, use cases, and the mental model for choosing the right one. Knowing when NOT to use a hash map matters as much as knowing how.</div></div>
+  <div class="sub">
+    <div class="sub-head">Complexity Reference</div>
+    <table class="tbl"><tr><th>Structure</th><th>Access</th><th>Search</th><th>Insert</th><th>Delete</th><th>Space</th></tr>
+    <tr><td>Array / Slice</td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Linked List</td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Hash Table</td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O o1">O(1)avg</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>BST (balanced)</td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Heap</td><td><span class="big-O o1">O(1)peak</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O ologn">O(log n)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Stack / Queue</td><td><span class="big-O on">O(n)</span></td><td><span class="big-O on">O(n)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O o1">O(1)</span></td><td><span class="big-O on">O(n)</span></td></tr>
+    <tr><td>Trie</td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on">O(k)</span></td><td><span class="big-O on2">O(n·k)</span></td></tr>
+    <tr><td>Union-Find (DSU)</td><td>—</td><td><span class="big-O o1">O(α(n))</span></td><td><span class="big-O o1">O(α(n))</span></td><td>—</td><td><span class="big-O on">O(n)</span></td></tr></table>
+    <p class="body">k = key length. α = inverse Ackermann (nearly constant). avg = amortized. Hash worst-case O(n) on collisions.</p>
+  </div>
+  <div class="sub">
+    <div class="sub-head">When to Use Which</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Array</div><div class="cb">Default choice. Sequential access, cache-friendly, O(1) index. Bad for mid-array insert. Use when size is known or growth is appended.</div></div>
+      <div class="card"><div class="ct">Hash Map</div><div class="cb">O(1) lookup by key. Frequency counting, deduplication, memoization. Bad for range queries, ordered iteration, or tight memory.</div></div>
+      <div class="card"><div class="ct">Stack</div><div class="cb">LIFO. Undo/redo, call stack simulation, bracket matching, DFS iteratively, expression evaluation (shunting-yard).</div></div>
+      <div class="card"><div class="ct">Queue / Deque</div><div class="cb">FIFO. BFS, task queues, sliding window maximum (monotonic deque — extremely useful for interview problems).</div></div>
+      <div class="card"><div class="ct">Heap (Priority Queue)</div><div class="cb">Always need min or max fast. K largest elements, Dijkstra, event scheduling. Min-heap: parent ≤ children.</div></div>
+      <div class="card"><div class="ct">Trie</div><div class="cb">Prefix search, autocomplete, spell checking, IP routing. O(k) ops where k = key length. Faster than hash for prefix operations.</div></div>
+      <div class="card"><div class="ct">Balanced BST</div><div class="cb">Ordered data with O(log n) everything. Range queries, floor/ceiling. Java TreeMap, C++ std::map, Python sortedcontainers.</div></div>
+      <div class="card"><div class="ct">Union-Find (DSU)</div><div class="cb">Connected components, cycle detection, Kruskal MST. Path compression + union by rank = nearly O(1) amortized. Elegant for graph problems.</div></div>
+      <div class="card"><div class="ct">Segment Tree</div><div class="cb">Range queries + range updates in O(log n). Sum, min, max over any interval. More complex than BIT but more powerful.</div></div>
+      <div class="card"><div class="ct">Fenwick Tree (BIT)</div><div class="cb">Range sum queries + point updates. Simpler than Segment Tree for these specific operations. O(log n), minimal code.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Hash Table Internals</div>
+    <div class="g2">
+      <div class="card amber"><div class="ct">Open Addressing</div><div class="cb">Collision → probe next slot (linear, quadratic, double hashing). Better cache locality, no extra allocation. Load factor must stay &lt;0.7. Python dict uses this.</div></div>
+      <div class="card amber"><div class="ct">Separate Chaining</div><div class="cb">Collision → linked list (or tree) at slot. Java HashMap — switches to Red-Black tree at 8+ entries per bucket. Load factor can exceed 1.0.</div></div>
+    </div>
+    <div class="info"><div class="ih">// HASH FUNCTION QUALITY</div><p>Bad hash = clustering. Good choices: MurmurHash3 (fast, non-cryptographic), xxHash (fastest), SipHash (DoS-resistant, used by Rust HashMap and Python 3.3+). Never use identity hash for user input — enables hash-flooding DoS attacks where an attacker crafts keys that all collide.</p></div>
+  </div>
+</div>
+
+<!-- 03 ALGORITHMS -->
+<div class="section" id="s-algo">
+  <div class="sec-head"><div class="sec-tag">// 03 · foundations</div><div class="sec-title"><em>Algorithms</em> &amp; Complexity</div><div class="sec-desc">Sorting, searching, graph traversal, dynamic programming, greedy algorithms, and the mental models for analyzing any algorithm you encounter.</div></div>
+  <div class="sub">
+    <div class="sub-head">Big-O Mental Model</div>
+    <div class="g4">
+      <div class="card green"><div class="ct" style="font-size:1.3rem">O(1)</div><div class="cb">Array index, hash lookup, stack push. Constant — doesn't grow with input size.</div></div>
+      <div class="card cyan"><div class="ct" style="font-size:1.3rem">O(log n)</div><div class="cb">Binary search, balanced BST. Double input = +1 step. Extremely fast for large n.</div></div>
+      <div class="card blue"><div class="ct" style="font-size:1.3rem">O(n)</div><div class="cb">Single loop, linear scan. Minimum for reading all input.</div></div>
+      <div class="card purple"><div class="ct" style="font-size:1.3rem">O(n log n)</div><div class="cb">Merge sort, heap sort. Optimal for comparison-based sorting.</div></div>
+      <div class="card amber"><div class="ct" style="font-size:1.3rem">O(n²)</div><div class="cb">Nested loops. Bubble/selection sort. OK for n&lt;1000, catastrophic for large input.</div></div>
+      <div class="card red"><div class="ct" style="font-size:1.3rem">O(2ⁿ)</div><div class="cb">All subsets. Naive recursive Fibonacci. n=30 = 1 billion ops. Unusable.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Sorting Reference</div>
+    <table class="tbl"><tr><th>Algorithm</th><th>Best</th><th>Average</th><th>Worst</th><th>Space</th><th>Stable</th><th>Notes</th></tr>
+    <tr><td>Merge Sort</td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O on">O(n)</span></td><td style="color:var(--green)">Yes</td><td>Stable, good for linked lists, external sort</td></tr>
+    <tr><td>Quick Sort</td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O on2">n²</span></td><td><span class="big-O ologn">log n</span></td><td style="color:var(--red)">No</td><td>In-practice fastest on arrays. Random pivot avoids worst case.</td></tr>
+    <tr><td>Heap Sort</td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O o1">O(1)</span></td><td style="color:var(--red)">No</td><td>Guaranteed O(n log n), in-place. Cache-unfriendly.</td></tr>
+    <tr><td>Tim Sort</td><td><span class="big-O on">O(n)</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O onlogn">n log n</span></td><td><span class="big-O on">O(n)</span></td><td style="color:var(--green)">Yes</td><td>Python, Java default. Exploits natural runs in real-world data.</td></tr>
+    <tr><td>Counting Sort</td><td><span class="big-O on">O(n+k)</span></td><td><span class="big-O on">O(n+k)</span></td><td><span class="big-O on">O(n+k)</span></td><td><span class="big-O on">O(k)</span></td><td style="color:var(--green)">Yes</td><td>Non-comparison. Only for small integer range k.</td></tr>
+    <tr><td>Radix Sort</td><td><span class="big-O on">O(nk)</span></td><td><span class="big-O on">O(nk)</span></td><td><span class="big-O on">O(nk)</span></td><td><span class="big-O on">O(n+k)</span></td><td style="color:var(--green)">Yes</td><td>Sort integers/strings digit by digit. Beats O(n log n) when k is small.</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Graph Algorithm Decision Tree</div>
+    <div class="g2">
+      <div class="card"><div class="ct">BFS (Breadth-First)</div><div class="cb">Queue. Shortest path in unweighted graph. Level-order traversal. Finds shortest path but uses more memory than DFS. O(V+E).</div></div>
+      <div class="card"><div class="ct">DFS (Depth-First)</div><div class="cb">Stack/recursion. Cycle detection, topological sort, connected components, maze solving. Less memory than BFS. O(V+E).</div></div>
+      <div class="card"><div class="ct">Dijkstra</div><div class="cb">Min-heap + relaxation. Shortest path, non-negative weights. O((V+E) log V). Use when edge weights are positive and you need exact shortest path.</div></div>
+      <div class="card"><div class="ct">Bellman-Ford</div><div class="cb">Shortest path with negative weights. Detects negative cycles (run V-1 iterations, then 1 more — if still improving, negative cycle exists). O(VE).</div></div>
+      <div class="card"><div class="ct">Floyd-Warshall</div><div class="cb">All-pairs shortest path. O(V³). Small dense graphs. DP: dp[i][j][k] = shortest i→j using only nodes 0..k.</div></div>
+      <div class="card"><div class="ct">Topological Sort</div><div class="cb">DFS post-order or Kahn's algorithm (BFS + in-degree). DAGs only. Dependency resolution, build systems, task scheduling.</div></div>
+      <div class="card"><div class="ct">Kruskal's MST</div><div class="cb">Sort edges by weight + DSU. Add edge if it doesn't form a cycle. O(E log E). Good for sparse graphs.</div></div>
+      <div class="card"><div class="ct">Prim's MST</div><div class="cb">Greedy: start from any node, always add cheapest edge to unvisited node. Min-heap + visited set. O(E log V). Good for dense graphs.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Dynamic Programming Framework</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>DP — 4-step framework</span><span class="lang">TypeScript</span></div>
+<pre><span class="c">// 1. Define state: what does dp[i] represent?</span>
+<span class="c">// 2. Find recurrence: dp[i] = f(dp[i-1], dp[i-2], ...)</span>
+<span class="c">// 3. Base cases: dp[0], dp[1]</span>
+<span class="c">// 4. Direction: top-down (memo) or bottom-up (tabulation)</span>
+ 
+<span class="c">// TOP-DOWN (memoization) — natural recursion + cache</span>
+<span class="k">function</span> <span class="v">fib</span>(n: <span class="t">number</span>, memo = <span class="k">new</span> Map()) {
+  <span class="k">if</span> (n &lt;= 1) <span class="k">return</span> n
+  <span class="k">if</span> (memo.has(n)) <span class="k">return</span> memo.get(n)!
+  <span class="k">const</span> result = fib(n-1, memo) + fib(n-2, memo)
+  memo.set(n, result)
+  <span class="k">return</span> result
+}
+ 
+<span class="c">// BOTTOM-UP (tabulation) — faster, no stack, space-optimizable</span>
+<span class="k">function</span> <span class="v">fib</span>(n: <span class="t">number</span>): <span class="t">number</span> {
+  <span class="k">if</span> (n &lt;= 1) <span class="k">return</span> n
+  <span class="k">let</span> [prev, curr] = [0, 1]
+  <span class="k">for</span> (<span class="k">let</span> i = 2; i &lt;= n; i++) [prev, curr] = [curr, prev + curr]
+  <span class="k">return</span> curr  <span class="c">// O(1) space — rolling array optimization</span>
+}</pre></div>
+    <div class="sub-sub">Classic DP Problems</div>
+    <table class="tbl"><tr><th>Problem</th><th>State</th><th>Recurrence</th></tr>
+    <tr><td>0/1 Knapsack</td><td>dp[i][w] = max value using items 0..i with capacity w</td><td>max(dp[i-1][w], dp[i-1][w-wt[i]] + val[i])</td></tr>
+    <tr><td>Longest Common Subsequence</td><td>dp[i][j] = LCS of s1[0..i], s2[0..j]</td><td>if s1[i]==s2[j]: 1+dp[i-1][j-1] else max(dp[i-1][j], dp[i][j-1])</td></tr>
+    <tr><td>Edit Distance</td><td>dp[i][j] = edits to turn s1[0..i] into s2[0..j]</td><td>if equal: dp[i-1][j-1] else 1+min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])</td></tr>
+    <tr><td>Coin Change</td><td>dp[i] = min coins to make amount i</td><td>min(dp[i-coin] + 1) for each coin</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Two Pointers / Sliding Window / Binary Search</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>core patterns</span><span class="lang">TypeScript</span></div>
+<pre><span class="c">// TWO POINTERS — sorted array, pair sum, palindrome check</span>
+<span class="k">let</span> l = 0, r = arr.length - 1
+<span class="k">while</span> (l &lt; r) { <span class="c">/* shrink from both ends */</span> }
+ 
+<span class="c">// SLIDING WINDOW — subarray/substring with constraint</span>
+<span class="k">let</span> l = 0, windowSum = 0
+<span class="k">for</span> (<span class="k">let</span> r = 0; r &lt; n; r++) {
+  windowSum += arr[r]
+  <span class="k">while</span> (windowSum &gt; target) windowSum -= arr[l++]
+  maxLen = Math.max(maxLen, r - l + 1)
+}
+ 
+<span class="c">// BINARY SEARCH — sorted array or monotonic answer space</span>
+<span class="k">let</span> lo = 0, hi = n - 1
+<span class="k">while</span> (lo &lt;= hi) {
+  <span class="k">const</span> mid = lo + ((hi - lo) &gt;&gt; 1)  <span class="c">// safe midpoint — avoid overflow</span>
+  <span class="k">if</span> (check(mid)) hi = mid - 1       <span class="c">// or lo = mid + 1 for right bound</span>
+  <span class="k">else</span> lo = mid + 1
+}</pre></div>
+  </div>
+</div>
+
+<!-- 04 OPERATING SYSTEMS -->
+<div class="section" id="s-os">
+  <div class="sec-head"><div class="sec-tag">// 04 · foundations</div><div class="sec-title">Operating <em>Systems</em></div><div class="sec-desc">Processes, threads, scheduling, virtual memory, file systems, IPC, and system calls. Understanding what happens below your code makes you a dramatically better engineer.</div></div>
+  <div class="sub">
+    <div class="sub-head">Process vs Thread vs Coroutine</div>
+    <table class="tbl"><tr><th></th><th>Process</th><th>Thread</th><th>Coroutine / Green Thread</th></tr>
+    <tr><td style="color:var(--muted)">Memory</td><td>Own address space</td><td>Shared with process</td><td>Shared, tiny stack (~2KB)</td></tr>
+    <tr><td style="color:var(--muted)">Switch cost</td><td>High (TLB flush, context save)</td><td>Medium (registers, stack)</td><td>Near-zero (user-space scheduler)</td></tr>
+    <tr><td style="color:var(--muted)">Isolation</td><td>Full — crash doesn't affect siblings</td><td>None — one thread crashes the process</td><td>None</td></tr>
+    <tr><td style="color:var(--muted)">Parallelism</td><td>Yes (multi-core)</td><td>Yes (multi-core)</td><td>Concurrent but not always parallel</td></tr>
+    <tr><td style="color:var(--muted)">Examples</td><td>Chrome tabs, Docker containers</td><td>Java threads, pthreads, OS threads</td><td>Go goroutines, async/await, Python asyncio</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CPU Scheduling Algorithms</div>
+    <div class="g2">
+      <div class="card"><div class="ct">FCFS — First Come First Served</div><div class="cb">Simple queue. No starvation. Convoy effect: one long job blocks all short jobs behind it. Bad for interactive workloads.</div></div>
+      <div class="card"><div class="ct">SJF / SRTF</div><div class="cb">Shortest Job First / Shortest Remaining Time First. Theoretically optimal average wait time. Problem: how do you know burst time in advance? Starvation of long jobs.</div></div>
+      <div class="card"><div class="ct">Round Robin</div><div class="cb">Time quantum (10–100ms) per process. Fair, responsive, good for interactive. Quantum too small = context switch overhead. Too large = degrades to FCFS.</div></div>
+      <div class="card"><div class="ct">Priority + Aging</div><div class="cb">Higher priority runs first. Aging prevents starvation: wait time increases priority. Linux uses CFS (Completely Fair Scheduler) — tracks vruntime, picks lowest.</div></div>
+      <div class="card"><div class="ct">Multilevel Feedback Queue</div><div class="cb">Multiple queues with different priorities. New jobs start high-priority. If they use full quantum, drop to lower queue. Interactive jobs stay high. CPU-bound drop down.</div></div>
+      <div class="card"><div class="ct">Linux CFS</div><div class="cb">Completely Fair Scheduler (since 2.6.23). Red-black tree ordered by virtual runtime. Always runs process with lowest vruntime. Niceness adjusts vruntime increment rate.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Virtual Memory &amp; Paging</div>
+    <div class="g2">
+      <div class="card cyan"><div class="ct">Pages &amp; Page Tables</div><div class="cb">Virtual address space divided into 4KB pages. OS maintains a page table mapping virtual page number → physical frame. Page fault = page not in RAM → OS loads from swap/disk → resumes process.</div></div>
+      <div class="card cyan"><div class="ct">TLB (Translation Lookaside Buffer)</div><div class="cb">Hardware cache for page table lookups. TLB hit = fast (&lt;1ns). TLB miss = page table walk = slow. Context switch flushes TLB — one reason process switches cost more than thread switches.</div></div>
+    </div>
+    <div class="sub-sub">Process Memory Layout (low → high address)</div>
+    <div class="srow">
+      <div class="mem-seg" style="border-color:rgba(59,130,246,0.4)"><span class="ms-name" style="color:var(--blue)">Text (Code)</span><span class="ms-desc">Executable instructions. Read-only. Shared between processes running same binary.</span><span class="ms-addr">0x400000</span></div>
+      <div class="mem-seg" style="border-color:rgba(0,212,204,0.4)"><span class="ms-name" style="color:var(--cyan)">Data (.data)</span><span class="ms-desc">Initialized global/static variables. String literals (.rodata, read-only).</span></div>
+      <div class="mem-seg" style="border-color:rgba(77,255,180,0.4)"><span class="ms-name" style="color:var(--green)">BSS</span><span class="ms-desc">Uninitialized global/static variables. Zero-initialized at program start.</span></div>
+      <div class="mem-seg" style="border-color:rgba(245,166,35,0.4)"><span class="ms-name" style="color:var(--amber)">Heap ↑</span><span class="ms-desc">Dynamic allocation (malloc/new). Grows upward. GC manages in managed languages. Fragmentation over time.</span></div>
+      <div class="mem-seg" style="border-color:rgba(168,85,247,0.4)"><span class="ms-name" style="color:var(--purple)">Memory-mapped</span><span class="ms-desc">mmap'd files, shared libraries (libc.so), anonymous mappings. Lives between heap and stack.</span></div>
+      <div class="mem-seg" style="border-color:rgba(255,77,109,0.4)"><span class="ms-name" style="color:var(--red)">Stack ↓</span><span class="ms-desc">Local variables, function frames, return addresses. Grows downward. Default 8MB limit. Stack overflow = too-deep recursion.</span><span class="ms-addr">high addr</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Page Replacement Algorithms</div>
+    <table class="tbl"><tr><th>Algorithm</th><th>Policy</th><th>Performance</th></tr>
+    <tr><td>FIFO</td><td>Evict oldest page</td><td>Simple. Belady's anomaly: more frames can cause more faults.</td></tr>
+    <tr><td>LRU</td><td>Evict least recently used</td><td>Near-optimal. Expensive to implement exactly. Approximated with clock algorithm.</td></tr>
+    <tr><td>Clock (Second Chance)</td><td>FIFO but give pages a second chance if recently used</td><td>LRU approximation. Linux uses this. O(1) per eviction.</td></tr>
+    <tr><td>OPT (Bélády's)</td><td>Evict page not needed furthest in future</td><td>Optimal — impossible in practice (requires future knowledge). Theoretical benchmark.</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">IPC — Inter-Process Communication</div>
+    <table class="tbl"><tr><th>Mechanism</th><th>Speed</th><th>Use case</th><th>Notes</th></tr>
+    <tr><td>Anonymous Pipe</td><td>Fast</td><td>Parent ↔ child. <code>ls | grep foo</code></td><td>One-directional, half-duplex</td></tr>
+    <tr><td>Named Pipe (FIFO)</td><td>Fast</td><td>Unrelated processes, same machine</td><td>Persists in filesystem</td></tr>
+    <tr><td>Unix Domain Socket</td><td>Very fast</td><td>Local IPC with full socket API</td><td>Docker, Postgres, Redis use this</td></tr>
+    <tr><td>Shared Memory</td><td>Fastest</td><td>Large data between processes</td><td>Requires explicit synchronization</td></tr>
+    <tr><td>Message Queue (SysV/POSIX)</td><td>Medium</td><td>Async, structured messages</td><td>Kernel-managed, persists until deleted</td></tr>
+    <tr><td>TCP/IP Socket</td><td>Slower</td><td>Cross-machine communication</td><td>Works across network</td></tr>
+    <tr><td>Signal</td><td>Instant</td><td>Notifications (SIGTERM, SIGKILL, SIGHUP)</td><td>Very limited payload (just signal number)</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">File Systems</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Inodes</div><div class="cb">Every Unix file has an inode storing: permissions, owner/group, timestamps, file size, and pointers to data blocks. NOT the filename. Directory = mapping of names → inode numbers. Hard link = second directory entry pointing to same inode. Symlink = new inode pointing to a path.</div></div>
+      <div class="card"><div class="ct">Journaling</div><div class="cb">Ext4, NTFS, APFS write operations to a journal before applying to the main filesystem. On crash, replay or discard the journal. Prevents corruption. Write-ahead logging (WAL) in databases (Postgres, SQLite) uses the same idea.</div></div>
+      <div class="card"><div class="ct">VFS (Virtual File System)</div><div class="cb">Linux abstraction layer — same syscalls (open, read, write) work on ext4, tmpfs, procfs, sysfs. Everything in Linux is a file. /proc contains process info as files. /sys exposes kernel internals.</div></div>
+      <div class="card"><div class="ct">Copy-on-Write (CoW)</div><div class="cb">BTRFS, ZFS, APFS, Docker layers use CoW. When you write a page, copy it first. Original stays intact. Enables snapshots, efficient forks, and Docker image layers with near-zero copy cost.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 05 NETWORKING -->
+<div class="section" id="s-net">
+  <div class="sec-head"><div class="sec-tag">// 05 · foundations</div><div class="sec-title">Computer <em>Networking</em></div><div class="sec-desc">OSI model, TCP/IP, HTTP/1.1/2/3, WebSockets, DNS resolution flow, TLS 1.3 handshake, and everything you need to debug a packet that won't arrive.</div></div>
+  <div class="sub">
+    <div class="sub-head">OSI 7-Layer Model</div>
+    <div class="srow">
+      <div class="net-layer" style="background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.25)"><span class="nl-num">7</span><span class="nl-name" style="color:var(--red)">Application</span><span class="nl-proto">HTTP, DNS, SMTP, FTP, SSH, WebSocket, gRPC</span><span class="nl-ex">your app lives here</span></div>
+      <div class="net-layer" style="border:1px solid var(--border)"><span class="nl-num">6</span><span class="nl-name" style="color:var(--orange)">Presentation</span><span class="nl-proto">TLS/SSL, encoding (UTF-8), serialization (JSON, Protobuf, MessagePack)</span></div>
+      <div class="net-layer" style="border:1px solid var(--border)"><span class="nl-num">5</span><span class="nl-name" style="color:var(--amber)">Session</span><span class="nl-proto">Session establishment &amp; teardown, NetBIOS, RPC session layer</span></div>
+      <div class="net-layer" style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25)"><span class="nl-num">4</span><span class="nl-name" style="color:var(--purple)">Transport</span><span class="nl-proto">TCP (reliable, ordered) · UDP (fast, best-effort) — ports live here</span><span class="nl-ex">sockets</span></div>
+      <div class="net-layer" style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.25)"><span class="nl-num">3</span><span class="nl-name" style="color:var(--blue)">Network</span><span class="nl-proto">IP (routing), ICMP (ping/traceroute), OSPF, BGP — IP addresses live here</span><span class="nl-ex">routers</span></div>
+      <div class="net-layer" style="background:rgba(0,212,204,0.06);border:1px solid rgba(0,212,204,0.25)"><span class="nl-num">2</span><span class="nl-name" style="color:var(--cyan)">Data Link</span><span class="nl-proto">Ethernet, Wi-Fi (802.11), ARP — MAC addresses live here, frames</span><span class="nl-ex">switches</span></div>
+      <div class="net-layer" style="border:1px solid var(--border)"><span class="nl-num">1</span><span class="nl-name" style="color:var(--green)">Physical</span><span class="nl-proto">Bits as electrical signals, light pulses, or radio waves — cables, fiber, NIC</span><span class="nl-ex">cables</span></div>
+    </div>
+    <div class="info"><div class="ih">// TCP/IP IS 4 LAYERS IN PRACTICE</div><p>OSI is a conceptual model. TCP/IP stack collapses it: Application (5-7) + Transport (4) + Internet (3) + Link (1-2). When you hear "Layer 7 load balancer" vs "Layer 4 load balancer" — L7 sees HTTP content, L4 sees only IP+port.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">TCP vs UDP</div>
+    <table class="tbl"><tr><th></th><th>TCP</th><th>UDP</th></tr>
+    <tr><td>Connection</td><td>Connection-oriented (3-way handshake: SYN → SYN-ACK → ACK)</td><td>Connectionless — just send</td></tr>
+    <tr><td>Delivery guarantee</td><td>Guaranteed, ordered, no duplicates (retransmit on loss)</td><td>Best-effort — may drop, duplicate, or reorder</td></tr>
+    <tr><td>Overhead</td><td>High — ACKs, flow control, congestion control, retransmit</td><td>Minimal — just checksum</td></tr>
+    <tr><td>Head-of-line blocking</td><td>Yes — one lost packet stalls the entire stream</td><td>No — packets are independent</td></tr>
+    <tr><td>Use cases</td><td>HTTP, SSH, databases, email, file transfer</td><td>Video streaming, VoIP, DNS, gaming, QUIC/HTTP3</td></tr></table>
+    <div class="sub-sub">TCP 3-Way Handshake &amp; Teardown</div>
+    <div class="flow">
+      <div class="fs">Client: SYN (seq=x)</div><div class="fa">→</div>
+      <div class="fs">Server: SYN-ACK (seq=y, ack=x+1)</div><div class="fa">→</div>
+      <div class="fs">Client: ACK (ack=y+1)</div><div class="fa">→</div>
+      <div class="fs">Connection established</div>
+    </div>
+    <div class="flow" style="margin-top:4px">
+      <div class="fs">FIN</div><div class="fa">→</div><div class="fs">ACK</div><div class="fa">→</div><div class="fs">FIN</div><div class="fa">→</div><div class="fs">ACK</div><div class="fa">→</div><div class="fs">TIME_WAIT (2MSL)</div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">HTTP Evolution</div>
+    <div class="g4">
+      <div class="card"><div class="cl">HTTP/1.1 (1997)</div><div class="ct">Keep-alive, pipelining</div><div class="cb">6 parallel connections/domain. Head-of-line blocking per connection. Still the baseline for most traffic today.</div></div>
+      <div class="card"><div class="cl">HTTP/2 (2015)</div><div class="ct">Multiplexed streams</div><div class="cb">Many requests over one TCP connection. Binary framing. HPACK header compression. Server push. Still TCP-level HoL blocking.</div></div>
+      <div class="card"><div class="cl">HTTP/3 / QUIC (2022)</div><div class="ct">UDP-based transport</div><div class="cb">QUIC replaces TCP. No HoL blocking per stream. 0-RTT resumption. Built-in TLS 1.3. Default for Google, YouTube, Cloudflare.</div></div>
+      <div class="card"><div class="cl">WebSocket (RFC 6455)</div><div class="ct">Full-duplex</div><div class="cb">HTTP upgrade to persistent TCP connection. Both sides push freely. Real-time chat, live dashboards, collaborative editing, multiplayer.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">DNS Resolution Flow</div>
+    <div class="flow">
+      <div class="fs">1. Browser cache</div><div class="fa">→</div>
+      <div class="fs">2. OS cache (/etc/hosts)</div><div class="fa">→</div>
+      <div class="fs">3. Stub resolver</div><div class="fa">→</div>
+      <div class="fs">4. Recursive resolver (ISP/8.8.8.8)</div><div class="fa">→</div>
+      <div class="fs">5. Root nameserver (.)</div><div class="fa">→</div>
+      <div class="fs">6. TLD server (.com)</div><div class="fa">→</div>
+      <div class="fs">7. Authoritative NS</div><div class="fa">→</div>
+      <div class="fs">IP returned + cached by TTL</div>
+    </div>
+    <table class="tbl" style="margin-top:1rem"><tr><th>Record</th><th>Maps</th><th>Example</th></tr>
+    <tr><td>A</td><td>Hostname → IPv4</td><td><code>api.example.com → 1.2.3.4</code></td></tr>
+    <tr><td>AAAA</td><td>Hostname → IPv6</td><td><code>api.example.com → 2001:db8::1</code></td></tr>
+    <tr><td>CNAME</td><td>Alias → canonical hostname</td><td><code>www → example.com</code> (follow chain)</td></tr>
+    <tr><td>MX</td><td>Domain → mail server(s)</td><td>With priority values</td></tr>
+    <tr><td>TXT</td><td>Domain → arbitrary text</td><td>SPF, DKIM, domain verification tokens</td></tr>
+    <tr><td>NS</td><td>Zone → authoritative nameserver</td><td>Delegation records</td></tr>
+    <tr><td>SOA</td><td>Zone authority information</td><td>Primary NS, admin email, serial, refresh intervals</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">TLS 1.3 Handshake</div>
+    <div class="flow">
+      <div class="fs">ClientHello (cipher suites, key_share)</div><div class="fa">→</div>
+      <div class="fs">ServerHello + Certificate + Finished</div><div class="fa">→</div>
+      <div class="fs">Client verifies cert chain + Finished</div><div class="fa">→</div>
+      <div class="fs">Encrypted application data (1-RTT)</div>
+    </div>
+    <div class="g2" style="margin-top:1rem">
+      <div class="card green"><div class="ct">TLS 1.3 improvements over 1.2</div><div class="cb">1-RTT (was 2-RTT). 0-RTT resumption. Removed: RSA key exchange, RC4, DES, 3DES, SHA-1, MD5. Forward secrecy mandatory (ECDHE). Encrypted certificates.</div></div>
+      <div class="card amber"><div class="ct">0-RTT caveat</div><div class="cb">Fast but vulnerable to replay attacks. The early data sent in 0-RTT can be replayed by an attacker. Never use 0-RTT for non-idempotent requests (POST, payment endpoints).</div></div>
+    </div>
+    <div class="sub-sub">Subnetting Quick Reference</div>
+    <table class="tbl"><tr><th>CIDR</th><th>Hosts</th><th>Mask</th><th>Typical use</th></tr>
+    <tr><td>/32</td><td>1</td><td>255.255.255.255</td><td>Single host route, loopback</td></tr>
+    <tr><td>/30</td><td>2</td><td>255.255.255.252</td><td>Point-to-point links</td></tr>
+    <tr><td>/24</td><td>254</td><td>255.255.255.0</td><td>Small office / home network</td></tr>
+    <tr><td>/16</td><td>65,534</td><td>255.255.0.0</td><td>Large network / VPC</td></tr>
+    <tr><td>/8</td><td>16.7M</td><td>255.0.0.0</td><td>Class A (10.0.0.0/8 private)</td></tr></table>
+  </div>
+</div>

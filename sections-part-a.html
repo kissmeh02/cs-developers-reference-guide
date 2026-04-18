@@ -1,0 +1,56 @@
+<!-- 01 CS FUNDAMENTALS -->
+<div class="section" id="s-cs">
+  <div class="sec-head"><div class="sec-tag">// 01 · foundations</div><div class="sec-title">CS <em>Fundamentals</em></div><div class="sec-desc">Number systems, binary arithmetic, Boolean logic, memory hierarchy, CPU architecture, and the ideas every working system is built on top of.</div></div>
+  <div class="sub">
+    <div class="sub-head">Number Systems</div>
+    <table class="tbl"><tr><th>System</th><th>Base</th><th>Digits</th><th>Example (=10)</th><th>Use</th></tr>
+    <tr><td>Binary</td><td>2</td><td>0,1</td><td><code>1010</code></td><td>CPU, memory, bitwise ops</td></tr>
+    <tr><td>Octal</td><td>8</td><td>0–7</td><td><code>012</code></td><td>Unix file permissions (chmod 755)</td></tr>
+    <tr><td>Decimal</td><td>10</td><td>0–9</td><td><code>10</code></td><td>Human-readable</td></tr>
+    <tr><td>Hexadecimal</td><td>16</td><td>0–9, A–F</td><td><code>0xA</code></td><td>Memory addresses, colors, hashes</td></tr></table>
+    <div class="g2">
+      <div class="card"><div class="ct">Two's Complement</div><div class="cb">How CPUs represent negative integers. Negate = flip all bits + 1. 8-bit range: -128 to 127. Overflow wraps silently — INT_MAX + 1 = INT_MIN. This is a real bug source.</div></div>
+      <div class="card"><div class="ct">IEEE 754 Float</div><div class="cb">32-bit: sign(1) + exponent(8) + mantissa(23). 0.1 + 0.2 ≠ 0.3. Never use floats for money. Use integer cents, Decimal, or BigDecimal. Infinity and NaN are valid float values.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Boolean Logic &amp; Bitwise Tricks</div>
+    <table class="tbl"><tr><th>Gate</th><th>Truth</th><th>Code</th><th>Use</th></tr>
+    <tr><td>AND ∧</td><td>1 only if both 1</td><td><code>a &amp; b</code></td><td>Masking bits, checking flags</td></tr>
+    <tr><td>OR ∨</td><td>1 if either 1</td><td><code>a | b</code></td><td>Setting flags</td></tr>
+    <tr><td>NOT ¬</td><td>Flips every bit</td><td><code>~a</code></td><td>Complement, clearing masks</td></tr>
+    <tr><td>XOR ⊕</td><td>1 if different</td><td><code>a ^ b</code></td><td>Toggle bits, swap without temp, find unique element</td></tr>
+    <tr><td>NAND ↑</td><td>NOT(AND) — universal gate</td><td><code>~(a &amp; b)</code></td><td>All logic can be built from NAND alone</td></tr></table>
+    <div class="cb-wrap"><div class="cb-bar"><span>essential bit tricks</span><span class="lang">C / Go / TypeScript</span></div>
+<pre><span class="n">n &amp; (n-1)</span>   <span class="c">// clear lowest set bit. n &amp; (n-1) == 0 means n is power of 2</span>
+<span class="n">n | (1&lt;&lt;k)</span>  <span class="c">// set bit k</span>
+<span class="n">n &amp; ~(1&lt;&lt;k)</span> <span class="c">// clear bit k</span>
+<span class="n">n ^ (1&lt;&lt;k)</span>  <span class="c">// toggle bit k</span>
+<span class="n">(n&gt;&gt;k)&amp;1</span>   <span class="c">// read bit k</span>
+<span class="n">n &amp; -n</span>      <span class="c">// isolate lowest set bit</span>
+<span class="n">lo + ((hi-lo)&gt;&gt;1)</span> <span class="c">// safe midpoint (no overflow)</span></pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Memory Hierarchy (Latency)</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">CPU Registers</span><span class="sv">~0.3ns · bytes · inside the CPU core</span><span class="sr">fastest</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">L1 Cache</span><span class="sv">~1ns · 32–64KB per core · split Instruction + Data cache</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">L2 Cache</span><span class="sv">~4ns · 256KB–1MB per core</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">L3 Cache</span><span class="sv">~10ns · 4–64MB shared between cores</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">RAM (DRAM)</span><span class="sv">~100ns · GBs · main memory · 100x slower than L1</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">NVMe SSD</span><span class="sv">~100µs · TBs · 1000x slower than RAM</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">HDD</span><span class="sv">~10ms · TBs · 100x slower than NVMe</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">Network (DC)</span><span class="sv">~0.5ms same datacenter · ~100ms cross-continent</span><span class="sr">slowest</span></div>
+    </div>
+    <div class="warn"><div class="wh">// CACHE LOCALITY MATTERS</div><p>Sequential memory access (arrays) is 10–100x faster than random access (linked lists) because the CPU prefetcher can predict and pre-load the next cache line. Always prefer arrays over linked lists unless you truly need O(1) insert/delete.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">CPU Architecture Essentials</div>
+    <div class="g4">
+      <div class="card cyan"><div class="ct">Control Unit</div><div class="cb">Fetch → Decode → Execute cycle. Manages program counter. Modern CPUs pipeline, speculate, and reorder instructions out-of-order.</div></div>
+      <div class="card cyan"><div class="ct">ALU</div><div class="cb">Arithmetic Logic Unit. Integer math and comparisons. FPU handles floating point. SIMD units process multiple values in parallel (AVX, NEON).</div></div>
+      <div class="card cyan"><div class="ct">Virtual Memory</div><div class="cb">OS illusion: every process sees a full address space. MMU translates virtual → physical via page tables. Page fault = load from disk.</div></div>
+      <div class="card cyan"><div class="ct">Interrupts</div><div class="cb">Hardware signals the CPU to pause and handle I/O, timer events, or exceptions. IRQ priority. Context save/restore on every interrupt.</div></div>
+    </div>
+  </div>
+</div>
