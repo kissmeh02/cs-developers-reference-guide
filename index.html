@@ -1103,6 +1103,102 @@ User.findOne({ <span class="k">where</span>: { id: userId } })</pre></div>
     <tr><td>Review prompt</td><td>You want a code review</td><td>"Review this diff for bugs, security issues, and missed edge cases."</td></tr>
     <tr><td>Explain prompt</td><td>You're reading unfamiliar code</td><td>"Explain this function line by line. What are the edge cases?"</td></tr></table>
   </div>
+  <div class="sub">
+    <div class="sub-head">Claude — Prompt Reference &amp; Capabilities</div>
+    <p class="body">Claude (Anthropic) is the model family powering Claude Code, the API, and claude.ai. Understanding its prompting model makes you dramatically more effective.</p>
+    <div class="sub-sub">Model Lineup (2026)</div>
+    <table class="tbl"><tr><th>Model</th><th>ID</th><th>Best for</th><th>Context</th></tr>
+    <tr><td style="color:var(--purple)">Opus 4.6</td><td><code>claude-opus-4-6</code></td><td>Complex reasoning, architecture, long code analysis</td><td>200K (1M extended)</td></tr>
+    <tr><td style="color:var(--cyan)">Sonnet 4.6</td><td><code>claude-sonnet-4-6</code></td><td>Daily coding, balanced speed/quality, default for most tasks</td><td>200K</td></tr>
+    <tr><td style="color:var(--green)">Haiku 4.5</td><td><code>claude-haiku-4-5-20251001</code></td><td>Fast tasks, classification, extraction, high-volume</td><td>200K</td></tr></table>
+    <div class="sub-sub">System Prompt Structure</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>effective system prompt anatomy</span><span class="lang">Markdown</span></div>
+<pre><span class="c"># Role &amp; Identity</span>
+<span class="s">You are a senior backend engineer specializing in Go and PostgreSQL.</span>
+<span class="s">You write production-grade code with error handling and tests.</span>
+
+<span class="c"># Constraints &amp; Rules</span>
+<span class="s">- Use only stdlib + pgx. No ORMs.</span>
+<span class="s">- Return errors, never panic.</span>
+<span class="s">- All SQL must use parameterized queries ($1, $2).</span>
+<span class="s">- No code comments unless logic is non-obvious.</span>
+
+<span class="c"># Output Format</span>
+<span class="s">- Respond with code only. No explanations unless asked.</span>
+<span class="s">- Use Go naming conventions (exported = PascalCase).</span>
+
+<span class="c"># Context (optional — paste relevant code/types here)</span></pre></div>
+    <div class="sub-sub">Prompting Techniques That Work with Claude</div>
+    <table class="tbl"><tr><th>Technique</th><th>How</th><th>Why it works</th></tr>
+    <tr><td style="color:var(--cyan)">XML tags for structure</td><td><code>&lt;instructions&gt;</code>, <code>&lt;context&gt;</code>, <code>&lt;examples&gt;</code>, <code>&lt;output_format&gt;</code></td><td>Claude is trained to respect XML tag boundaries — cleanly separates sections, prevents bleed</td></tr>
+    <tr><td style="color:var(--cyan)">Prefill the response</td><td>Start the assistant turn with <code>{"result":</code> or <code>```go\nfunc</code></td><td>Forces output format. Claude continues from where you start — skips preamble</td></tr>
+    <tr><td style="color:var(--cyan)">Chain of thought</td><td>"Think step by step before answering" or <code>&lt;thinking&gt;</code> tags</td><td>Improves accuracy on complex reasoning. Extended thinking mode for Opus/Sonnet auto-allocates</td></tr>
+    <tr><td style="color:var(--green)">Few-shot examples</td><td>Provide 2-3 input→output examples before the real task</td><td>Demonstrates the exact format, style, and depth you want — more reliable than describing it</td></tr>
+    <tr><td style="color:var(--green)">Negative constraints</td><td>"Do NOT add logging. Do NOT create helper files. Do NOT explain."</td><td>Claude defaults to being helpful/verbose — negative constraints prevent unwanted additions</td></tr>
+    <tr><td style="color:var(--green)">Role + audience</td><td>"Explain to a senior engineer" vs "Explain to a student"</td><td>Calibrates depth, jargon level, and assumptions about prior knowledge</td></tr>
+    <tr><td style="color:var(--amber)">Temperature control</td><td><code>temperature: 0</code> for deterministic, <code>0.7-1.0</code> for creative</td><td>Low temp = consistent code generation. High temp = brainstorming, naming, writing</td></tr>
+    <tr><td style="color:var(--amber)">Max tokens</td><td>Set <code>max_tokens</code> to prevent runaway responses</td><td>Keeps costs predictable. Forces conciseness. Required param in API calls</td></tr></table>
+    <div class="sub-sub">Claude API — Tool Use (Function Calling)</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>tool definition + usage</span><span class="lang">TypeScript / Anthropic SDK</span></div>
+<pre><span class="k">import</span> Anthropic <span class="k">from</span> <span class="s">'@anthropic-ai/sdk'</span>
+
+<span class="k">const</span> client = <span class="k">new</span> Anthropic()  <span class="c">// reads ANTHROPIC_API_KEY from env</span>
+
+<span class="k">const</span> response = <span class="k">await</span> client.messages.create({
+  model: <span class="s">'claude-sonnet-4-6'</span>,
+  max_tokens: <span class="n">1024</span>,
+  tools: [{
+    name: <span class="s">'get_weather'</span>,
+    description: <span class="s">'Get current weather for a city'</span>,
+    input_schema: {
+      type: <span class="s">'object'</span>,
+      properties: {
+        city: { type: <span class="s">'string'</span>, description: <span class="s">'City name'</span> },
+        units: { type: <span class="s">'string'</span>, enum: [<span class="s">'celsius'</span>, <span class="s">'fahrenheit'</span>] }
+      },
+      required: [<span class="s">'city'</span>]
+    }
+  }],
+  messages: [{ role: <span class="s">'user'</span>, content: <span class="s">'Weather in Tokyo?'</span> }]
+})
+
+<span class="c">// Claude responds with stop_reason: 'tool_use'</span>
+<span class="c">// Extract tool call → execute → send result back as tool_result</span></pre></div>
+    <div class="sub-sub">Claude API — Key Patterns</div>
+    <div class="g2">
+      <div class="card"><div class="ct">Messages API (standard)</div><div class="cb"><code>POST /v1/messages</code>. Alternating user/assistant turns. System prompt is a top-level param, not a message. Supports text, images, PDFs, tool_use, and tool_result content blocks.</div></div>
+      <div class="card"><div class="ct">Streaming</div><div class="cb"><code>stream: true</code> returns Server-Sent Events. Content arrives as <code>content_block_delta</code> events. Use for real-time UX. Always handle <code>message_stop</code> event for cleanup.</div></div>
+      <div class="card"><div class="ct">Extended Thinking</div><div class="cb">Enable with <code>thinking: { type: "enabled", budget_tokens: 10000 }</code>. Claude reasons internally before responding. Best for math, code architecture, multi-step problems. Thinking tokens count toward output.</div></div>
+      <div class="card"><div class="ct">Vision (multimodal)</div><div class="cb">Pass images as base64 or URL in content blocks. Claude can read screenshots, diagrams, handwritten notes, charts. Use for UI review, architecture diagram analysis, OCR.</div></div>
+    </div>
+    <div class="sub-sub">Claude Code — Slash Commands &amp; Workflow</div>
+    <table class="tbl"><tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>/help</code></td><td>Show all available commands and usage</td></tr>
+    <tr><td><code>/clear</code></td><td>Reset conversation context (start fresh)</td></tr>
+    <tr><td><code>/compact</code></td><td>Summarize conversation to free context window</td></tr>
+    <tr><td><code>/cost</code></td><td>Show token usage and cost for current session</td></tr>
+    <tr><td><code>/doctor</code></td><td>Check Claude Code installation health</td></tr>
+    <tr><td><code>/init</code></td><td>Generate a CLAUDE.md project guide for the codebase</td></tr>
+    <tr><td><code>/review</code></td><td>Review code changes (staged or working tree)</td></tr>
+    <tr><td><code>/terminal-setup</code></td><td>Configure shell integration and theme</td></tr>
+    <tr><td><code>! command</code></td><td>Run a shell command inline (e.g., <code>! npm test</code>)</td></tr></table>
+    <div class="sub-sub">Claude Code — Best Practices</div>
+    <div class="g2">
+      <div class="card green"><div class="ct">CLAUDE.md</div><div class="cb">Project-level instructions Claude reads automatically. Put coding standards, stack info, test commands, and "do/don't" rules here. Lives in repo root. <code>/init</code> generates a starter.</div></div>
+      <div class="card green"><div class="ct">Hooks</div><div class="cb">Shell commands that run on Claude Code events (pre-tool-call, post-tool-call). Automate linting after edits, run tests after file writes. Configured in <code>settings.json</code>.</div></div>
+      <div class="card cyan"><div class="ct">MCP Servers</div><div class="cb">Model Context Protocol — connect Claude to external tools (databases, APIs, Slack, GitHub). Claude calls MCP tools like native functions. Configure in <code>settings.json</code>.</div></div>
+      <div class="card cyan"><div class="ct">Subagents</div><div class="cb">Claude can spawn background agents for parallel research, testing, or exploration. Use <code>Agent</code> tool with specialized types: Explore, Plan, general-purpose. Maximizes throughput on complex tasks.</div></div>
+    </div>
+    <div class="sub-sub">Prompt Anti-Patterns (avoid these)</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--red)">Mega-prompt</span><span class="sv">Dumping everything into one message. Break into atomic tasks. Context drift increases with prompt length.</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">Vague instructions</span><span class="sv">"Make it better" or "Write an app". Be specific: language, framework, constraints, expected output shape.</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">No examples</span><span class="sv">Describing format in words when 2 examples would be unambiguous. Show, don't tell.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Secrets in prompts</span><span class="sv">API keys, passwords, tokens sent to any AI. Use env vars, redact in examples. Assume prompts are logged.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Ignoring context window</span><span class="sv">Pasting 100K tokens and expecting perfect recall. Front-load important info. Use <code>/compact</code> to manage.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">One-shot trust</span><span class="sv">Merging AI output without reading it. Always review diffs. Run tests. Check for hallucinated imports.</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- 19 ML FUNDAMENTALS -->
