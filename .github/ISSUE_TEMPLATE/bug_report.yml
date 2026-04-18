@@ -1,0 +1,40 @@
+name: Bug report
+description: Report incorrect content, broken navigation, or build problems
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What went wrong?
+      description: Describe the problem in a few sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: URLs, section names, or clicks that trigger the issue.
+    validations:
+      required: false
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did you see this?
+      options:
+        - Local dev (`npm run dev`)
+        - Production build / preview (`npm run build` / `npm run preview`)
+        - GitHub Pages
+        - Other / not sure
+    validations:
+      required: false
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS (if relevant)
+      placeholder: e.g. Safari 18 on iOS, Chrome on Windows 11
+    validations:
+      required: false

@@ -4,6 +4,15 @@
   "private": true,
   "type": "module",
   "description": "2026 Engineering Reference — static documentation site",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kissmeh02/cs-developers-reference-guide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kissmeh02/cs-developers-reference-guide/issues"
+  },
+  "homepage": "https://kissmeh02.github.io/cs-developers-reference-guide/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
