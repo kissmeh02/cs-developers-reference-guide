@@ -79,7 +79,9 @@
 <span class="n">n ^ (1&lt;&lt;k)</span>  <span class="c">// toggle bit k</span>
 <span class="n">(n&gt;&gt;k)&amp;1</span>   <span class="c">// read bit k</span>
 <span class="n">n &amp; -n</span>      <span class="c">// isolate lowest set bit</span>
-<span class="n">lo + ((hi-lo)&gt;&gt;1)</span> <span class="c">// safe midpoint (no overflow)</span></pre></div>
+<span class="n">lo + ((hi-lo)&gt;&gt;1)</span> <span class="c">// safe midpoint (no overflow)</span>
+<span class="n">a ^ b ^ b</span>   <span class="c">// = a (XOR is its own inverse)</span>
+<span class="n">x ^ x</span>       <span class="c">// = 0 (find missing number in array)</span></pre></div>
   </div>
   <div class="sub">
     <div class="sub-head">Memory Hierarchy (Latency)</div>
@@ -724,337 +726,642 @@ g, ctx := errgroup.WithContext(ctx)
 
 <!-- 11 ENVIRONMENT & CONFIG -->
 <div class="section" id="s-env">
-  <div class="sec-head"><div class="sec-tag">// 11 · engineering</div><div class="sec-title">Environment &amp; <em>Config</em></div><div class="sec-desc">12-factor principles, secrets vs config, feature flags, and how to ship the same artifact through dev, staging, and prod without rebuilding.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 11 · engineering</div><div class="sec-title">Environment <em>&amp; Config</em></div><div class="sec-desc">Environment tiers, config hierarchy, Twelve-Factor compliance, Docker patterns, secret management pipeline, and the absolute rules of configuration hygiene.</div></div>
   <div class="sub">
-    <div class="sub-head">Twelve-Factor App (summary)</div>
-    <div class="g3">
-      <div class="card"><div class="ct">Codebase · Dependencies · Config</div><div class="cb">One repo per app. Explicit dependency declaration (go.mod, package-lock). Config in environment — never committed secrets. Build produces one immutable artifact.</div></div>
-      <div class="card"><div class="ct">Backing services · Build/release/run</div><div class="cb">Treat DB/cache as attached resources (URLs in env). Strict separation: build = compile, release = build + config, run = execute. Never SSH to change prod.</div></div>
-      <div class="card"><div class="ct">Processes · Port binding · Concurrency</div><div class="cb">Stateless processes; sticky sessions are a smell. Export HTTP on <code>$PORT</code>. Scale out with process model (workers), not threads in one giant process.</div></div>
-      <div class="card"><div class="ct">Disposability · Dev/prod parity · Logs</div><div class="cb">Fast startup, graceful SIGTERM. Minimize drift: same Postgres major in dev as prod. Stream logs to stdout — platform aggregates.</div></div>
-      <div class="card"><div class="ct">Admin processes · One-off tasks</div><div class="cb">Migrations and console jobs run as one-off processes with same release as app — same codebase, same config version.</div></div>
+    <div class="sub-head">Environment Tiers</div>
+    <table class="tbl"><tr><th>Tier</th><th>Purpose</th><th>Data policy</th><th>Who deploys</th><th>Key constraint</th></tr>
+    <tr><td style="color:var(--green)">local</td><td>Dev machine. Break freely.</td><td>Seed data only, no real PII</td><td>Developer manually</td><td>Must match prod stack via Docker Compose</td></tr>
+    <tr><td style="color:var(--cyan)">dev / preview</td><td>Branch deploys, integration testing</td><td>Anonymized data dumps</td><td>CI on PR open</td><td>Ephemeral — destroyed on PR close</td></tr>
+    <tr><td style="color:var(--amber)">staging</td><td>Production mirror, final QA, load testing</td><td>Sanitized prod clone</td><td>CI on merge to main</td><td>Infra must be identical to prod</td></tr>
+    <tr><td style="color:var(--red)">production</td><td>Real users, real data</td><td>Real PII — treat with care</td><td>CI after approval gate</td><td>Migration before app deploy, always</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Config Hierarchy (lowest → highest priority)</div>
+    <div class="srow">
+      <div class="si"><span class="sk">1. Code defaults</span><span class="sv">Hardcoded safe fallbacks. Non-sensitive only. e.g. <code>PORT = 3000</code>, <code>LOG_LEVEL = "info"</code></span><span class="sr">lowest</span></div>
+      <div class="si"><span class="sk">2. .env files</span><span class="sv"><code>.env.local</code> (gitignored, dev only). <code>.env.example</code> (committed, no values). NEVER commit <code>.env</code> with real values.</span></div>
+      <div class="si"><span class="sk">3. CI/CD secrets</span><span class="sv">GitHub Actions encrypted secrets, injected as env vars at runtime. Per-environment secrets.</span></div>
+      <div class="si"><span class="sk">4. Runtime vault</span><span class="sv">HashiCorp Vault, AWS Secrets Manager, Doppler. Dynamic secrets. Auto-rotate. Short-lived credentials.</span><span class="sr">highest</span></div>
     </div>
+    <div class="alert"><div class="ah">// ZERO SECRETS IN GIT — NO EXCEPTIONS</div><p>Run gitleaks as a pre-commit hook and in CI. If a secret lands in Git history, assume it's compromised regardless of repo visibility. Rotate it immediately. <code>git filter-repo</code> to purge history.</p></div>
   </div>
   <div class="sub">
-    <div class="sub-head">Secrets Management</div>
-    <table class="tbl"><tr><th>Approach</th><th>When</th><th>Never</th></tr>
-    <tr><td>Vault / AWS Secrets Manager / GCP Secret Manager</td><td>Production — rotation, audit, least privilege</td><td>Plain env vars in CI logs</td></tr>
-    <tr><td>Injected at deploy time (K8s secrets, ECS)</td><td>Runtime only — not in image layers</td><td>Committing <code>.env</code> to git</td></tr>
-    <tr><td>Short-lived tokens (OIDC, IAM roles)</td><td>Prefer over long-lived API keys</td><td>Sharing root credentials in Slack</td></tr></table>
-    <div class="alert"><div class="ah">// SECRET SCANNING</div><p>Enable GitHub secret scanning, gitleaks, or trufflehog in CI. A leaked key in history is forever — rotate immediately and use scoped keys per service.</p></div>
-  </div>
-  <div class="sub">
-    <div class="sub-head">Feature Flags</div>
-    <div class="g2">
-      <div class="card cyan"><div class="ct">Release vs experiment</div><div class="cb"><strong>Release flags</strong> hide incomplete work; remove after launch. <strong>Experiment flags</strong> drive A/B tests with metrics — owned by product/analytics.</div></div>
-      <div class="card purple"><div class="ct">Kill switches</div><div class="cb">Flags that turn off expensive paths (third-party API, new code path) without deploy. Must be observable — log flag state on critical paths.</div></div>
+    <div class="sub-head">Twelve-Factor App (Relevant Factors)</div>
+    <div class="g4">
+      <div class="card"><div class="cl">I · Codebase</div><div class="cb">One repo, many deploys. Feature branches, not env branches. Tag releases.</div></div>
+      <div class="card"><div class="cl">III · Config</div><div class="cb">Everything that differs between deploys lives in env vars. Never in code or config files in the repo.</div></div>
+      <div class="card"><div class="cl">IV · Backing services</div><div class="cb">Treat DB, Redis, S3 as attached resources. Swap by changing a URL in config. No code change.</div></div>
+      <div class="card"><div class="cl">VI · Processes</div><div class="cb">Stateless and share-nothing. All state in backing services. 2 instances must behave identically.</div></div>
+      <div class="card"><div class="cl">IX · Disposability</div><div class="cb">Fast startup (&lt;10s). Graceful shutdown on SIGTERM — drain in-flight requests before exiting.</div></div>
+      <div class="card"><div class="cl">X · Dev/prod parity</div><div class="cb">Same OS, same DB, same queue locally. Docker Compose makes this achievable for every dev.</div></div>
+      <div class="card"><div class="cl">XI · Logs as streams</div><div class="cb">Write structured JSON to stdout. Platform routes to Loki / CloudWatch / Datadog. Never manage log files.</div></div>
+      <div class="card"><div class="cl">XII · Admin processes</div><div class="cb">DB migrations, seed scripts run as one-off processes from the same image in the same environment.</div></div>
     </div>
   </div>
 </div>
 
 <!-- 12 TESTING STRATEGY -->
 <div class="section" id="s-testing">
-  <div class="sec-head"><div class="sec-tag">// 12 · engineering</div><div class="sec-title"><em>Testing</em> Strategy</div><div class="sec-desc">The test pyramid, contract tests, property-based testing, and where to invest so failures happen before production — not after.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 12 · engineering</div><div class="sec-title"><em>Testing</em> Strategy</div><div class="sec-desc">The testing trophy, TDD with AI, test anatomy, mocking philosophy, property-based testing, and exactly what to test vs what not to.</div></div>
   <div class="sub">
-    <div class="sub-head">Test Pyramid</div>
-    <div class="srow">
-      <div class="si"><span class="sk" style="color:var(--green)">Unit</span><span class="sv">Many, fast, isolated. Mock external I/O. Cover pure logic and edge cases. Run on every commit.</span><span class="sr">70%</span></div>
-      <div class="si"><span class="sk" style="color:var(--cyan)">Integration</span><span class="sv">Real DB, real queue, real HTTP — but in-process or docker-compose. Catch wiring bugs. Slower than unit.</span><span class="sr">20%</span></div>
-      <div class="si"><span class="sk" style="color:var(--amber)">E2E / UI</span><span class="sv">Full browser or API black-box. Flaky, expensive. Critical user journeys only. Run nightly or pre-release.</span><span class="sr">10%</span></div>
+    <div class="sub-head">The Testing Trophy</div>
+    <div class="g4">
+      <div class="card green"><div class="cl">Static Analysis</div><div class="cb">TypeScript, ESLint, Clippy. Catches typos, type errors, dead code before a single test runs. Zero runtime cost. Enable strict mode everywhere.</div></div>
+      <div class="card cyan"><div class="cl">Unit Tests</div><div class="cb">Pure functions, business logic, edge cases. Fast (&lt;5ms each). No I/O. Mock only impure boundaries. Aim for high coverage of critical paths, not 100% line coverage.</div></div>
+      <div class="card purple"><div class="cl">Integration Tests</div><div class="cb">Real DB (Testcontainers), real HTTP, real queue. Tests that your modules actually wire together. Slower but catch the bugs unit tests miss. Most confidence per test dollar.</div></div>
+      <div class="card amber"><div class="cl">E2E Tests</div><div class="cb">Playwright, Cypress. Full browser, real API. Expensive, flaky, slow. Only critical user journeys: signup, checkout, payment. Run nightly or pre-release, not on every commit.</div></div>
     </div>
-    <div class="info"><div class="ih">// ICE CREAM CONE ANTI-PATTERN</div><p>Most tests are E2E, few unit tests — slow CI, brittle feedback. Invert: push confidence down the pyramid.</p></div>
   </div>
   <div class="sub">
-    <div class="sub-head">Test Types at a Glance</div>
-    <table class="tbl"><tr><th>Type</th><th>Validates</th><th>Tools</th></tr>
-    <tr><td>Contract (consumer-driven)</td><td>API schema matches what clients expect</td><td>Pact, Spring Cloud Contract</td></tr>
-    <tr><td>Snapshot</td><td>UI or JSON output unchanged (guard against drift)</td><td>Jest, Vitest — review diffs carefully</td></tr>
-    <tr><td>Property-based</td><td>Invariants hold for random inputs</td><td>Hypothesis, fast-check, QuickCheck</td></tr>
-    <tr><td>Mutation testing</td><td>Tests actually kill mutants (assertions work)</td><td>Stryker, mutmut</td></tr></table>
+    <div class="sub-head">TDD + AI Workflow</div>
+    <div class="flow"><span class="fs">Write failing test</span><span class="fa">→</span><span class="fs">AI generates implementation</span><span class="fa">→</span><span class="fs">Test passes</span><span class="fa">→</span><span class="fs">Review AI code</span><span class="fa">→</span><span class="fs">Refactor</span><span class="fa">→</span><span class="fs">Commit</span></div>
+    <p class="body">The test is your spec. AI fills in the implementation. You verify correctness. This inverts the typical AI workflow — instead of generating code then writing tests, the test comes first and constrains the solution space.</p>
   </div>
   <div class="sub">
-    <div class="sub-head">Determinism &amp; Flakes</div>
+    <div class="sub-head">Test Anatomy — AAA Pattern</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>arrange → act → assert</span><span class="lang">TypeScript / Vitest</span></div>
+<pre><span class="c">// ARRANGE — set up test data and dependencies</span>
+<span class="k">const</span> cart = <span class="k">new</span> Cart();
+cart.add({ sku: <span class="s">"WIDGET-1"</span>, qty: <span class="n">2</span>, price: <span class="n">1999</span> });
+
+<span class="c">// ACT — execute the behavior under test</span>
+<span class="k">const</span> total = cart.checkout();
+
+<span class="c">// ASSERT — verify the outcome</span>
+expect(total).toBe(<span class="n">3998</span>);
+expect(cart.items).toHaveLength(<span class="n">0</span>); <span class="c">// cart cleared after checkout</span></pre></div>
+    <div class="warn"><div class="wh">// GOLDEN MOCKING RULE</div><p>Mock at boundaries (HTTP, DB, clock, filesystem), never mock the system under test. If you need to mock 5 things to test one function, your design has too many dependencies — refactor first.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">What to Test / What Not to Test</div>
     <div class="g2">
-      <div class="card red"><div class="ct">Common flake sources</div><div class="cb">Time (<code>now()</code>), random IDs, async without await, shared global state, order-dependent assertions, real network in unit tests.</div></div>
-      <div class="card green"><div class="ct">Fixes</div><div class="cb">Inject clocks; seed RNG; fake timers; retry only at E2E layer with cap; quarantine flaky tests until fixed — never ignore permanently.</div></div>
+      <div class="card green"><div class="cl">DO test</div><div class="cb">Business logic and calculations. State transitions. Edge cases (empty, null, max, overflow). Error paths and error messages. Race conditions (concurrent access). Contract boundaries (API input/output shapes).</div></div>
+      <div class="card red"><div class="cl">DON'T test</div><div class="cb">Framework internals (React renders a div). Third-party library behavior. Private methods directly (test via public API). Implementation details (exact SQL query text). Getters/setters with no logic.</div></div>
     </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Property-Based Testing</div>
+    <p class="body">Instead of hand-picked examples, declare invariants and let the framework generate thousands of random inputs. Catches edge cases you never imagined.</p>
+    <div class="cb-wrap"><div class="cb-bar"><span>fast-check example</span><span class="lang">TypeScript</span></div>
+<pre><span class="k">import</span> fc <span class="k">from</span> <span class="s">"fast-check"</span>;
+
+fc.assert(
+  fc.property(fc.array(fc.integer()), (arr) =&gt; {
+    <span class="k">const</span> sorted = mySort([...arr]);
+    <span class="c">// Invariant 1: same length</span>
+    expect(sorted).toHaveLength(arr.length);
+    <span class="c">// Invariant 2: every consecutive pair is ordered</span>
+    sorted.every((v, i) =&gt; i === 0 || sorted[i - 1] &lt;= v);
+    <span class="c">// Invariant 3: same elements (sort is a permutation)</span>
+    expect(sorted.sort()).toEqual(arr.sort());
+  })
+);</pre></div>
   </div>
 </div>
 
 <!-- 13 CI/CD & GITOPS -->
 <div class="section" id="s-cicd">
-  <div class="sec-head"><div class="sec-tag">// 13 · engineering</div><div class="sec-title">CI/CD &amp; <em>GitOps</em></div><div class="sec-desc">Pipelines, trunk-based development, deployment strategies, and reconciling desired state in Git with what actually runs in the cluster.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 13 · engineering</div><div class="sec-title">CI/CD &amp; <em>GitOps</em></div><div class="sec-desc">The gold standard pipeline, deployment strategies with rollback mechanics, CI security gates, and trunk-based development rules.</div></div>
   <div class="sub">
-    <div class="sub-head">CI Pipeline Stages</div>
-    <div class="flow"><span class="fs">lint</span><span class="fa">→</span><span class="fs">unit</span><span class="fa">→</span><span class="fs">build artifact</span><span class="fa">→</span><span class="fs">integration</span><span class="fa">→</span><span class="fs">security scan</span><span class="fa">→</span><span class="fs">publish</span></div>
-    <p class="body">Fail fast: cheapest checks first. Same Dockerfile / same build for all envs — config differs, image tag is immutable.</p>
+    <div class="sub-head">Gold Standard Pipeline</div>
+    <div class="flow"><span class="fs">checkout</span><span class="fa">→</span><span class="fs">install</span><span class="fa">→</span><span class="fs">lint</span><span class="fa">→</span><span class="fs">typecheck</span><span class="fa">→</span><span class="fs">unit test</span><span class="fa">→</span><span class="fs">build</span><span class="fa">→</span><span class="fs">integration test</span><span class="fa">→</span><span class="fs">security scan</span><span class="fa">→</span><span class="fs">docker build</span><span class="fa">→</span><span class="fs">push image</span><span class="fa">→</span><span class="fs">deploy staging</span><span class="fa">→</span><span class="fs">deploy prod</span></div>
+    <p class="body">Fail fast: cheapest checks first. Same Dockerfile / same build for all envs — config differs via env vars, image tag is immutable. Build once, deploy everywhere.</p>
+    <div class="info"><div class="ih">// MIGRATION BEFORE APP</div><p>Database migrations run as a separate init step before the new app version starts. Never couple schema changes to app startup — a failed deploy with a half-applied migration is a nightmare.</p></div>
   </div>
   <div class="sub">
     <div class="sub-head">Deployment Strategies</div>
-    <table class="tbl"><tr><th>Strategy</th><th>Risk</th><th>Rollback</th></tr>
-    <tr><td>Rolling</td><td>Low — replace instances gradually</td><td>Slow — old code still serving during rollout</td></tr>
-    <tr><td>Blue/Green</td><td>Two full envs; instant switch</td><td>Fast — flip traffic back</td></tr>
-    <tr><td>Canary</td><td>Route small % to new version; promote on metrics</td><td>Automatic if error rate spikes</td></tr>
-    <tr><td>Feature flags + trunk</td><td>Ship dark; enable gradually</td><td>Toggle off — no redeploy</td></tr></table>
+    <table class="tbl"><tr><th>Strategy</th><th>How it works</th><th>Risk</th><th>Rollback speed</th><th>Best for</th></tr>
+    <tr><td>Rolling</td><td>Replace instances one-by-one</td><td>Low — gradual</td><td>Slow — wait for old instances</td><td>Stateless services, default K8s</td></tr>
+    <tr><td>Blue/Green</td><td>Two full environments, switch LB</td><td>Medium — double infra cost</td><td>Instant — flip traffic back</td><td>Zero-downtime with instant rollback</td></tr>
+    <tr><td>Canary</td><td>Route 1–5% traffic to new version</td><td>Low — blast radius limited</td><td>Fast — shift traffic to old</td><td>High-traffic services, metric-gated</td></tr>
+    <tr><td>Feature flags</td><td>Ship dark code, enable in config</td><td>Very low — no deploy needed</td><td>Instant — toggle off</td><td>Gradual rollout, A/B testing</td></tr>
+    <tr><td>Recreate</td><td>Kill all old, start all new</td><td>High — downtime window</td><td>Redeploy old version</td><td>Dev/staging only, never prod</td></tr></table>
   </div>
   <div class="sub">
-    <div class="sub-head">GitOps (Argo CD, Flux)</div>
+    <div class="sub-head">CI Security Gates</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">&#9679; gitleaks / trufflehog</span><span class="sv">Scan for secrets in code and history. Block merge if found.</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">&#9679; npm audit / cargo audit</span><span class="sv">Known CVEs in dependencies. Fail on critical/high severity.</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">&#9679; SAST (Semgrep, CodeQL)</span><span class="sv">Static analysis for injection, XSS, insecure patterns.</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">&#9679; Container scan (Trivy, Snyk)</span><span class="sv">Scan Docker images for OS-level CVEs before push.</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">&#9679; License check</span><span class="sv">Ensure no GPL/AGPL in proprietary builds.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">&#9679; DAST (ZAP, Nuclei)</span><span class="sv">Dynamic scan against running staging. Slower — run nightly.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">&#9679; SBOM generation</span><span class="sv">CycloneDX or SPDX. Attach to release for supply chain transparency.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Trunk-Based Development</div>
     <div class="g2">
-      <div class="card"><div class="ct">Desired state in Git</div><div class="cb">K8s manifests or Helm values committed. Controller continuously reconciles cluster → Git. Drift = alert or auto-heal.</div></div>
-      <div class="card"><div class="ct">PR as change gate</div><div class="cb">Prod promotion = merge to <code>main</code> or release branch. Audit trail built in. Rollback = revert commit.</div></div>
+      <div class="card green"><div class="cl">Rules</div><div class="cb">Everyone commits to <code>main</code> (or short-lived feature branches &lt;2 days). Feature flags hide incomplete work. CI runs on every push. Broken main = stop the line.</div></div>
+      <div class="card red"><div class="cl">Not GitFlow</div><div class="cb">No long-lived develop/release/hotfix branches. No merge hell. No "works on my branch." Trunk-based + feature flags gives the same isolation with less ceremony.</div></div>
     </div>
   </div>
 </div>
 
 <!-- 14 PERFORMANCE -->
 <div class="section" id="s-perf">
-  <div class="sec-head"><div class="sec-tag">// 14 · engineering</div><div class="sec-title"><em>Performance</em></div><div class="sec-desc">Latency vs throughput, profiling, caching layers, and the discipline of measuring before optimizing — because intuition lies.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 14 · engineering</div><div class="sec-title"><em>Performance</em></div><div class="sec-desc">Latency numbers every engineer should know, caching strategies, cache invalidation, Core Web Vitals, and database query optimization.</div></div>
   <div class="sub">
-    <div class="sub-head">Latency Budget</div>
-    <p class="body">If p99 API SLO is 200ms and you have 5 hops (LB, gateway, service, DB, cache), each hop gets a slice — often ~20–40ms max. Serial chains multiply; parallelize independent work.</p>
+    <div class="sub-head">Measure Before Optimizing</div>
     <div class="g2">
-      <div class="card"><div class="ct">Little's Law</div><div class="cb"><code>L = λ × W</code> — average items in system = arrival rate × average time in system. Queue depth explodes when utilization → 100%.</div></div>
-      <div class="card"><div class="ct">Tail latency</div><div class="cb">p99 matters more than mean. One slow dependency in a fan-out poisons the whole request — hedging, timeouts, bulkhead isolation.</div></div>
+      <div class="card"><div class="ct">Profile first</div><div class="cb">Never guess. Use flame graphs (CPU), allocation profiles (memory), and distributed traces (latency). The bottleneck is almost never where you think it is.</div></div>
+      <div class="card"><div class="ct">Benchmarks lie without context</div><div class="cb">Microbenchmarks ignore cache warming, GC pressure, and real-world contention. Always benchmark with production-like data and load patterns.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">Caching Layers</div>
-    <table class="tbl"><tr><th>Layer</th><th>TTL</th><th>Invalidation</th></tr>
-    <tr><td>Browser / CDN</td><td>Minutes–days</td><td>Cache-Control, purge API, versioned URLs</td></tr>
-    <tr><td>Application (Redis)</td><td>Seconds–hours</td><td>TTL + explicit delete on write; watch stale reads</td></tr>
-    <tr><td>Database</td><td>Buffer pool</td><td>Query plan cache; connection pooling limits</td></tr></table>
-    <div class="warn"><div class="wh">// CACHE STAMPEDE</div><p>Many clients miss at once → thundering herd to DB. Mitigate: single-flight, request coalescing, probabilistic early expiration.</p></div>
+    <div class="sub-head">Latency Numbers Every Engineer Should Know</div>
+    <table class="tbl"><tr><th>Operation</th><th>Latency</th><th>Relative</th></tr>
+    <tr><td>L1 cache hit</td><td>~1 ns</td><td>1x (baseline)</td></tr>
+    <tr><td>L2 cache hit</td><td>~4 ns</td><td>4x</td></tr>
+    <tr><td>L3 cache hit</td><td>~10 ns</td><td>10x</td></tr>
+    <tr><td>RAM access</td><td>~100 ns</td><td>100x</td></tr>
+    <tr><td>NVMe SSD read</td><td>~100 &micro;s</td><td>100,000x</td></tr>
+    <tr><td>HDD seek</td><td>~10 ms</td><td>10,000,000x</td></tr>
+    <tr><td>Same datacenter RTT</td><td>~0.5 ms</td><td>500,000x</td></tr>
+    <tr><td>US coast-to-coast RTT</td><td>~70 ms</td><td>70,000,000x</td></tr>
+    <tr><td>TLS handshake</td><td>~50 ms</td><td>50,000,000x</td></tr>
+    <tr><td>DNS lookup (uncached)</td><td>~50–200 ms</td><td>50–200M x</td></tr></table>
+    <div class="warn"><div class="wh">// KEY INSIGHT</div><p>Network round trips dominate everything. A function that takes 1ms but makes 10 serial DB queries at 5ms each = 51ms. Batch queries, use connection pooling, and parallelize independent I/O.</p></div>
   </div>
   <div class="sub">
-    <div class="sub-head">Profiling Mindset</div>
+    <div class="sub-head">Caching Strategies</div>
+    <table class="tbl"><tr><th>Strategy</th><th>How it works</th><th>Use when</th><th>Watch for</th></tr>
+    <tr><td>Cache-aside (lazy)</td><td>App checks cache, misses → reads DB → writes cache</td><td>General purpose, read-heavy</td><td>Thundering herd on cold cache</td></tr>
+    <tr><td>Write-through</td><td>Write to cache + DB simultaneously</td><td>Strong consistency needed</td><td>Write latency doubles</td></tr>
+    <tr><td>Write-behind</td><td>Write to cache, async flush to DB</td><td>Write-heavy, eventual consistency OK</td><td>Data loss on cache failure</td></tr>
+    <tr><td>Read-through</td><td>Cache itself fetches from DB on miss</td><td>Clean API, framework support</td><td>Cold start latency spike</td></tr>
+    <tr><td>CDN / Edge</td><td>Cache at network edge, close to user</td><td>Static assets, SSR HTML</td><td>Purge propagation delay</td></tr></table>
+    <div class="alert"><div class="ah">// CACHE INVALIDATION</div><p>There are only two hard things in CS: cache invalidation, naming things, and off-by-one errors. Use TTL as a safety net. Prefer event-driven invalidation (pub/sub on writes) over manual purge. Single-flight / request coalescing prevents thundering herd.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Core Web Vitals</div>
     <div class="g3">
-      <div class="card"><div class="ct">CPU</div><div class="cb">Flame graphs — wide bars = hot code. Often allocation or regex, not algorithm.</div></div>
-      <div class="card"><div class="ct">Heap</div><div class="cb">Allocation profiles find unnecessary copies and boxed primitives.</div></div>
-      <div class="card"><div class="ct">Wall time</div><div class="cb">Async I/O shows as waiting — trace across services (OpenTelemetry).</div></div>
+      <div class="card green"><div class="cl">LCP &lt; 2.5s</div><div class="cb">Largest Contentful Paint. Optimize: preload hero image, server-side render above fold, avoid render-blocking JS/CSS, use CDN for assets.</div></div>
+      <div class="card cyan"><div class="cl">INP &lt; 200ms</div><div class="cb">Interaction to Next Paint. Optimize: break long tasks (&gt;50ms) with <code>scheduler.yield()</code>, debounce input handlers, move work to Web Workers.</div></div>
+      <div class="card purple"><div class="cl">CLS &lt; 0.1</div><div class="cb">Cumulative Layout Shift. Fix: set explicit width/height on images and embeds, use <code>aspect-ratio</code> CSS, avoid injecting content above the fold after load.</div></div>
     </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Database Query Optimization</div>
+    <ul class="rlist">
+      <li><i>·</i><strong>EXPLAIN ANALYZE</strong> every slow query — read the execution plan, not just the results.</li>
+      <li><i>·</i><strong>Index strategy:</strong> B-tree for equality/range, GIN for full-text/JSONB, partial indexes for filtered queries.</li>
+      <li><i>·</i><strong>N+1 queries:</strong> The #1 ORM performance bug. Use eager loading, DataLoader, or batch queries.</li>
+      <li><i>·</i><strong>Connection pooling:</strong> PgBouncer or built-in pool. Max connections = CPU cores * 2 + disk spindles.</li>
+      <li><i>·</i><strong>Pagination:</strong> Keyset (cursor) pagination scales; OFFSET/LIMIT degrades linearly with page depth.</li>
+    </ul>
   </div>
 </div>
 
 <!-- 15 OBSERVABILITY -->
 <div class="section" id="s-obs">
-  <div class="sec-head"><div class="sec-tag">// 15 · engineering</div><div class="sec-title"><em>Observability</em></div><div class="sec-desc">The three pillars used correctly: metrics for aggregates, logs for context, traces for causality — plus SLOs and actionable alerts.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 15 · engineering</div><div class="sec-title"><em>Observability</em></div><div class="sec-desc">The three pillars, RED and USE frameworks, SLOs and error budgets, structured logging with trace correlation, and alerting rules that actually work.</div></div>
   <div class="sub">
     <div class="sub-head">Three Pillars</div>
     <div class="g3">
-      <div class="card cyan"><div class="ct">Metrics</div><div class="cb">Counters, gauges, histograms. RED: Rate, Errors, Duration per service. Cardinality explosion = death — avoid high-cardinality labels in Prometheus.</div></div>
-      <div class="card purple"><div class="ct">Logs</div><div class="cb">Structured JSON with <code>trace_id</code>, <code>level</code>, <code>msg</code>. Correlate with traces. Sampling for high volume.</div></div>
-      <div class="card amber"><div class="ct">Traces</div><div class="cb">Distributed spans with parent span ID. Shows which downstream call burned latency. W3C trace context propagation across HTTP/gRPC.</div></div>
+      <div class="card cyan"><div class="cl">Logs</div><div class="cb">Structured JSON to stdout. Always include: <code>timestamp</code>, <code>level</code>, <code>trace_id</code>, <code>service</code>, <code>msg</code>. Never log PII or secrets. Sampling at high volume (1:100 for debug). Platform (Loki, CloudWatch, Datadog) handles aggregation.</div></div>
+      <div class="card purple"><div class="cl">Metrics</div><div class="cb">Counters (monotonic), gauges (point-in-time), histograms (distributions). Use Prometheus/OpenTelemetry. Watch label cardinality — 10 labels with 100 values each = 100 billion time series = dead Prometheus.</div></div>
+      <div class="card amber"><div class="cl">Traces</div><div class="cb">Distributed spans with parent/child relationships. W3C Trace Context header propagation. Shows exactly which downstream call burned your latency budget. Jaeger, Tempo, or Datadog APM.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">SLO / SLI / SLA</div>
+    <div class="sub-head">RED + USE Frameworks</div>
     <div class="g2">
-      <div class="card"><div class="ct">SLI</div><div class="cb">What you measure — e.g. ratio of successful HTTP 2xx / total requests over 30 days.</div></div>
-      <div class="card"><div class="ct">SLO</div><div class="cb">Target — e.g. 99.9% availability monthly. Error budget = allowed downtime — spend on velocity or freeze releases.</div></div>
-      <div class="card"><div class="ct">SLA</div><div class="cb">Contract with customers — credits or penalties if breached. Stricter than internal SLO.</div></div>
+      <div class="card"><div class="cl">RED (for request-driven services)</div><div class="cb"><strong>R</strong>ate — requests per second. <strong>E</strong>rrors — failed requests per second. <strong>D</strong>uration — latency histograms (p50, p95, p99). If you only have three dashboards, make them RED.</div></div>
+      <div class="card"><div class="cl">USE (for resources: CPU, memory, disk, network)</div><div class="cb"><strong>U</strong>tilization — % of resource in use. <strong>S</strong>aturation — queue depth (work waiting). <strong>E</strong>rrors — error events. USE finds infrastructure bottlenecks; RED finds application bottlenecks.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">Alerting That Wakes Humans</div>
-    <div class="alert"><div class="ah">// PAGES ONLY FOR ACTIONABLE</div><p>Symptom-based alerts (p99 latency, error rate) over cause-based (CPU &gt; 80% — might be fine). Runbooks linked from alert. No alert = no one looks at dashboards.</p></div>
+    <div class="sub-head">SLO / Error Budget</div>
+    <div class="g3">
+      <div class="card"><div class="cl">SLI (indicator)</div><div class="cb">What you measure. e.g. ratio of requests completing in &lt;300ms with 2xx status over 30 days. Must be measurable, meaningful, and tied to user experience.</div></div>
+      <div class="card"><div class="cl">SLO (objective)</div><div class="cb">Target for the SLI. e.g. 99.9% of requests succeed within latency budget. This means 43 minutes of allowed downtime per month. Set SLO tighter than SLA.</div></div>
+      <div class="card"><div class="cl">Error Budget</div><div class="cb">100% - SLO = budget to spend on velocity. Budget remaining? Ship features. Budget burned? Freeze features, fix reliability. This makes the velocity-vs-stability tradeoff explicit and data-driven.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Structured Log + Trace Example</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>correlation</span><span class="lang">JSON</span></div>
+<pre>{
+  <span class="s">"timestamp"</span>: <span class="s">"2026-03-15T14:22:01.003Z"</span>,
+  <span class="s">"level"</span>:     <span class="s">"error"</span>,
+  <span class="s">"service"</span>:   <span class="s">"payment-api"</span>,
+  <span class="s">"trace_id"</span>:  <span class="s">"abc123def456"</span>,
+  <span class="s">"span_id"</span>:   <span class="s">"span-789"</span>,
+  <span class="s">"msg"</span>:       <span class="s">"charge failed"</span>,
+  <span class="s">"error"</span>:     <span class="s">"card_declined"</span>,
+  <span class="s">"user_id"</span>:   <span class="s">"usr_42"</span>,
+  <span class="s">"amount"</span>:    <span class="n">4999</span>,
+  <span class="s">"duration_ms"</span>: <span class="n">230</span>
+}</pre></div>
+    <div class="alert"><div class="ah">// ALERTING RULES</div><p>Page on symptoms (error rate &gt; SLO burn rate), not causes (CPU &gt; 80%). Every alert must have a runbook link. If an alert fires and no one acts on it, delete it — alert fatigue kills incident response.</p></div>
   </div>
 </div>
 
 <!-- 16 SECURITY (ZTA) -->
 <div class="section" id="s-security">
-  <div class="sec-head"><div class="sec-tag">// 16 · security</div><div class="sec-title">Security &amp; <em>Zero Trust</em></div><div class="sec-desc">Assume breach: verify explicitly, least privilege, and defense in depth — from identity to workload to data at rest.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 16 · security</div><div class="sec-title">Security &amp; <em>Zero Trust</em></div><div class="sec-desc">Zero Trust principles, OWASP Top 10, authentication patterns, password hashing, injection prevention, and security headers.</div></div>
   <div class="sub">
     <div class="sub-head">Zero Trust Principles</div>
-    <div class="g2">
-      <div class="card red"><div class="ct">Never trust the network</div><div class="cb">mTLS between services. No "trusted internal VLAN" — lateral movement is the attacker's goal after one phished laptop.</div></div>
-      <div class="card green"><div class="ct">Verify every request</div><div class="cb">OIDC/OAuth2 for users, SPIFFE/SPIRE or cloud IAM for workloads. Short-lived tokens. RBAC + ABAC where needed.</div></div>
+    <div class="g4">
+      <div class="card red"><div class="cl">Verify explicitly</div><div class="cb">Always authenticate and authorize based on all available data: identity, location, device health, service, data classification, anomalies.</div></div>
+      <div class="card red"><div class="cl">Least privilege</div><div class="cb">Limit access with just-in-time and just-enough-access (JIT/JEA). Time-bound permissions. Assume every credential will leak — minimize blast radius.</div></div>
+      <div class="card red"><div class="cl">Assume breach</div><div class="cb">Segment access. Verify end-to-end encryption. Use analytics for threat detection. Every network is hostile — even your internal VLAN.</div></div>
+      <div class="card red"><div class="cl">mTLS everywhere</div><div class="cb">Mutual TLS between all services. Service mesh (Istio, Linkerd) automates cert rotation. No plaintext HTTP inside the cluster.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">OWASP Top Risks (web)</div>
-    <table class="tbl"><tr><th>Risk</th><th>Mitigation</th></tr>
-    <tr><td>Injection (SQL, command)</td><td>Parameterized queries; never concatenate user input into shell</td></tr>
-    <tr><td>Broken access control</td><td>Authorize every route — IDOR checks (user owns resource)</td></tr>
-    <tr><td>SSRF</td><td>Block internal IPs from user-supplied URLs; allowlists</td></tr>
-    <tr><td>XSS</td><td>Context-aware escaping; CSP headers; avoid <code>dangerouslySetInnerHTML</code></td></tr>
-    <tr><td>CSRF</td><td>SameSite cookies + anti-CSRF tokens for state-changing requests</td></tr></table>
+    <div class="sub-head">OWASP Top 10 (2021+)</div>
+    <table class="tbl"><tr><th>#</th><th>Risk</th><th>Key mitigation</th></tr>
+    <tr><td style="color:var(--red)">A01</td><td>Broken Access Control</td><td>Default deny. Authorize every endpoint. IDOR checks (user owns resource). RBAC + ABAC.</td></tr>
+    <tr><td style="color:var(--red)">A02</td><td>Cryptographic Failures</td><td>TLS 1.3, AES-GCM, Argon2id. No MD5/SHA1 for passwords. Encrypt PII at rest.</td></tr>
+    <tr><td style="color:var(--red)">A03</td><td>Injection</td><td>Parameterized queries. Never concatenate user input. ORM with care.</td></tr>
+    <tr><td style="color:var(--amber)">A04</td><td>Insecure Design</td><td>Threat modeling. Abuse cases in requirements. Security by design, not bolt-on.</td></tr>
+    <tr><td style="color:var(--amber)">A05</td><td>Security Misconfiguration</td><td>Harden defaults. Disable debug in prod. Automate config scanning. No default passwords.</td></tr>
+    <tr><td style="color:var(--amber)">A06</td><td>Vulnerable Components</td><td>SBOM, Dependabot, npm audit, cargo audit. Pin versions. Review changelogs on update.</td></tr>
+    <tr><td style="color:var(--cyan)">A07</td><td>Auth Failures</td><td>MFA, rate limiting, credential stuffing protection, session timeout, bcrypt/argon2.</td></tr>
+    <tr><td style="color:var(--cyan)">A08</td><td>Data Integrity Failures</td><td>Signed updates, CI/CD pipeline integrity (SLSA), code review for supply chain.</td></tr>
+    <tr><td style="color:var(--cyan)">A09</td><td>Logging &amp; Monitoring Gaps</td><td>Log auth events, access denials, input validation failures. Alert on anomalies.</td></tr>
+    <tr><td style="color:var(--purple)">A10</td><td>SSRF</td><td>Block internal IPs from user-supplied URLs. Allowlist domains. Disable redirects.</td></tr></table>
   </div>
   <div class="sub">
-    <div class="sub-head">Dependency &amp; Supply Chain</div>
-    <p class="body">Lockfiles, SBOM (CycloneDX), signed images (cosign), Dependabot/Renovate, and review before merging major upgrades. SLSA levels describe build integrity.</p>
+    <div class="sub-head">Authentication Patterns</div>
+    <div class="g2">
+      <div class="card"><div class="cl">JWT (stateless)</div><div class="cb">Token contains claims, signed by server. No server-side session store needed. Short expiry (15min). Refresh token in httpOnly cookie. Revocation is hard — use short TTL + deny list for critical logouts.</div></div>
+      <div class="card"><div class="cl">Session (stateful)</div><div class="cb">Opaque session ID in httpOnly, Secure, SameSite=Lax cookie. Server stores session in Redis/DB. Easy revocation (delete session). Scales with session store, not with request volume.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Password Hashing</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>never roll your own</span><span class="lang">Go / Argon2id</span></div>
+<pre><span class="c">// Use Argon2id — winner of the Password Hashing Competition</span>
+<span class="c">// Parameters: time=1, memory=64MB, threads=4, keyLen=32</span>
+hash := argon2.IDKey([]byte(password), salt, <span class="n">1</span>, <span class="n">64</span>*<span class="n">1024</span>, <span class="n">4</span>, <span class="n">32</span>)
+
+<span class="c">// NEVER: MD5, SHA-256 alone, single-iteration anything</span>
+<span class="c">// NEVER: store plaintext, reversible encryption, or pepper-only</span></pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Injection Prevention</div>
+    <div class="cb-wrap"><div class="cb-bar"><span>parameterized queries</span><span class="lang">SQL</span></div>
+<pre><span class="c">-- WRONG: string concatenation = SQL injection</span>
+<span class="s">"SELECT * FROM users WHERE id = '"</span> + userId + <span class="s">"'"</span>
+
+<span class="c">-- RIGHT: parameterized query</span>
+<span class="s">"SELECT * FROM users WHERE id = $1"</span>, [userId]
+
+<span class="c">-- RIGHT: ORM with parameter binding</span>
+User.findOne({ <span class="k">where</span>: { id: userId } })</pre></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Security Headers Checklist</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">Content-Security-Policy</span><span class="sv"><code>default-src 'self'; script-src 'self'</code> — prevents XSS by controlling resource loading</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">Strict-Transport-Security</span><span class="sv"><code>max-age=63072000; includeSubDomains; preload</code> — forces HTTPS for 2 years</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">X-Content-Type-Options</span><span class="sv"><code>nosniff</code> — prevents MIME type sniffing attacks</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">X-Frame-Options</span><span class="sv"><code>DENY</code> or <code>SAMEORIGIN</code> — prevents clickjacking</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">Referrer-Policy</span><span class="sv"><code>strict-origin-when-cross-origin</code> — limits referrer leakage</span></div>
+      <div class="si"><span class="sk" style="color:var(--green)">Permissions-Policy</span><span class="sv">Disable unused browser features: <code>camera=(), microphone=(), geolocation=()</code></span></div>
+    </div>
   </div>
 </div>
 
 <!-- 17 CRYPTOGRAPHY -->
 <div class="section" id="s-crypto">
-  <div class="sec-head"><div class="sec-tag">// 17 · security</div><div class="sec-title"><em>Cryptography</em></div><div class="sec-desc">Use libraries — never roll your own primitives. Know what to use for hashing, encryption, and key exchange.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 17 · security</div><div class="sec-title"><em>Cryptography</em></div><div class="sec-desc">Algorithm reference table, symmetric vs asymmetric vs hybrid encryption, classic mistakes, and why you never roll your own crypto.</div></div>
   <div class="sub">
-    <div class="sub-head">Building Blocks</div>
-    <table class="tbl"><tr><th>Need</th><th>Use</th><th>Avoid</th></tr>
-    <tr><td>Password storage</td><td>Argon2id, scrypt, bcrypt (with adequate work factor)</td><td>MD5, SHA-256 alone</td></tr>
-    <tr><td>Symmetric encryption</td><td>AES-GCM or ChaCha20-Poly1305</td><td>AES-ECB, CBC without auth</td></tr>
-    <tr><td>Asymmetric</td><td>Ed25519, X25519, ECDSA P-256 (well-configured)</td><td>RSA with PKCS#1 v1.5 padding for new systems</td></tr>
-    <tr><td>Integrity</td><td>HMAC-SHA256 or keyed BLAKE2</td><td>Plain SHA for message auth</td></tr>
-    <tr><td>Randomness</td><td>OS CSPRNG (<code>/dev/urandom</code>, <code>crypto.randomBytes</code>)</td><td>Math.random, timestamps</td></tr></table>
-    <div class="info"><div class="ih">// AEAD</div><p>Authenticated encryption (GCM, ChaPoly) gives confidentiality + integrity in one API — prevents bit-flipping attacks.</p></div>
+    <div class="sub-head">Algorithm Reference</div>
+    <table class="tbl"><tr><th>Category</th><th>Use</th><th>Avoid</th><th>Why</th></tr>
+    <tr><td style="color:var(--green)">Password hashing</td><td>Argon2id, scrypt, bcrypt</td><td>MD5, SHA-256, SHA-1</td><td>Fast hashes = fast brute force. Memory-hard functions resist GPU attacks.</td></tr>
+    <tr><td style="color:var(--green)">Symmetric encryption</td><td>AES-256-GCM, ChaCha20-Poly1305</td><td>AES-ECB, AES-CBC without HMAC</td><td>ECB leaks patterns. CBC without auth enables padding oracle attacks.</td></tr>
+    <tr><td style="color:var(--green)">Asymmetric encryption</td><td>RSA-OAEP (2048+), ECIES</td><td>RSA PKCS#1 v1.5</td><td>Bleichenbacher attack on PKCS#1 v1.5 padding. OAEP is provably secure.</td></tr>
+    <tr><td style="color:var(--cyan)">Digital signatures</td><td>Ed25519, ECDSA P-256</td><td>RSA-1024, DSA</td><td>Ed25519: fast, constant-time, small keys. RSA-1024 factorable since 2010.</td></tr>
+    <tr><td style="color:var(--cyan)">Key exchange</td><td>X25519, ECDH P-256</td><td>DH with small primes</td><td>Curve25519: designed to resist timing attacks. Small prime DH is broken.</td></tr>
+    <tr><td style="color:var(--amber)">Integrity / MAC</td><td>HMAC-SHA256, BLAKE2, Poly1305</td><td>Plain SHA for message auth</td><td>SHA alone has no key — anyone can compute. HMAC binds integrity to a secret.</td></tr>
+    <tr><td style="color:var(--amber)">Randomness</td><td>OS CSPRNG (<code>/dev/urandom</code>, <code>crypto.getRandomValues</code>)</td><td><code>Math.random()</code>, timestamps, PIDs</td><td>Non-cryptographic PRNGs are predictable. Attackers can reconstruct sequences.</td></tr></table>
   </div>
   <div class="sub">
-    <div class="sub-head">TLS</div>
-    <p class="body">TLS 1.2+ only; prefer TLS 1.3. Certificate pinning only when you control clients. HSTS after HTTPS is stable. Never mixed content.</p>
+    <div class="sub-head">Symmetric vs Asymmetric vs Hybrid</div>
+    <div class="g3">
+      <div class="card"><div class="cl">Symmetric</div><div class="cb">Same key encrypts and decrypts. Fast (AES: ~1 GB/s). Problem: how do you share the key securely? Answer: you don't — you use asymmetric to exchange the symmetric key.</div></div>
+      <div class="card"><div class="cl">Asymmetric</div><div class="cb">Public key encrypts, private key decrypts (or: private signs, public verifies). Slow (~1000x slower than symmetric). Used for key exchange and digital signatures, not bulk encryption.</div></div>
+      <div class="card"><div class="cl">Hybrid (TLS)</div><div class="cb">Asymmetric to exchange a symmetric session key → symmetric for bulk data. This is how TLS works. Best of both worlds: security of asymmetric, speed of symmetric.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">5 Classic Crypto Mistakes</div>
+    <ul class="rlist">
+      <li><i>1.</i><strong>Rolling your own crypto</strong> — use NaCl/libsodium, OpenSSL, or Web Crypto API. Crypto libraries exist because subtle bugs = total break.</li>
+      <li><i>2.</i><strong>Reusing nonces/IVs</strong> — AES-GCM with a repeated nonce reveals the XOR of two plaintexts. Use random 96-bit nonces or counter mode.</li>
+      <li><i>3.</i><strong>Encrypt without authenticate</strong> — always use AEAD (GCM, ChaPoly). Encryption without authentication enables bit-flipping attacks.</li>
+      <li><i>4.</i><strong>Comparing MACs with ==</strong> — timing side-channel leaks the correct MAC byte-by-byte. Use constant-time comparison (<code>crypto.timingSafeEqual</code>).</li>
+      <li><i>5.</i><strong>Hardcoded keys in source</strong> — keys belong in vault/HSM. Rotate regularly. If a key is in Git history, it's compromised.</li>
+    </ul>
+    <p class="body"><strong>PKI:</strong> Certificate Authorities sign public keys. Chain of trust: root CA → intermediate CA → leaf cert. Certificate Transparency logs make mis-issuance detectable. Pin certificates only when you control both client and server.</p>
   </div>
 </div>
 
 <!-- 18 AI COLLABORATION -->
 <div class="section" id="s-ai">
-  <div class="sec-head"><div class="sec-tag">// 18 · security &amp; ai</div><div class="sec-title">AI <em>Collaboration</em></div><div class="sec-desc">How to pair with LLMs safely: context windows, prompt hygiene, verification, and keeping secrets out of prompts.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 18 · security &amp; ai</div><div class="sec-title">AI <em>Collaboration</em></div><div class="sec-desc">The pilot/navigator model, spec-driven development, AI slop detection checklist, and prompting patterns for maximum signal.</div></div>
   <div class="sub">
-    <div class="sub-head">Effective Practices</div>
+    <div class="sub-head">The Pilot / Navigator Model</div>
     <div class="g2">
-      <div class="card cyan"><div class="ct">Ground truth</div><div class="cb">Paste relevant files, error messages, and constraints. Vague prompts get plausible garbage.</div></div>
-      <div class="card purple"><div class="ct">Verify everything</div><div class="cb">Run tests, read diffs, check security implications. Models optimize for plausibility, not correctness.</div></div>
-      <div class="card amber"><div class="ct">No secrets in prompts</div><div class="cb">Treat vendor APIs as untrusted for retention. Use env vars locally; redact in examples.</div></div>
-      <div class="card green"><div class="ct">Iterative refinement</div><div class="cb">Small steps: generate interface → implement → test → fix. Better than one-shot mega-prompts.</div></div>
+      <div class="card cyan"><div class="cl">AI = Pilot</div><div class="cb">Writes code, generates boilerplate, suggests implementations, fills in patterns. Fast at producing volume. Optimizes for plausibility, not correctness.</div></div>
+      <div class="card purple"><div class="cl">You = Navigator</div><div class="cb">Defines direction, reviews every line, catches errors, owns the architecture. You decide what to build and verify it's correct. The AI accelerates; you steer.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">Risks</div>
-    <ul class="rlist">
-      <li><i>·</i><strong>Hallucinated APIs</strong> — always check docs for functions that don't exist.</li>
-      <li><i>·</i><strong>License</strong> — generated code may resemble training data; review for compliance.</li>
-      <li><i>·</i><strong>Prompt injection</strong> — untrusted content in RAG or user messages can override instructions.</li>
-    </ul>
+    <div class="sub-head">Spec-Driven Development</div>
+    <div class="flow"><span class="fs">Write spec (types + tests)</span><span class="fa">→</span><span class="fs">Feed spec to AI</span><span class="fa">→</span><span class="fs">AI generates implementation</span><span class="fa">→</span><span class="fs">Tests pass?</span><span class="fa">→</span><span class="fs">Review diff</span><span class="fa">→</span><span class="fs">Ship</span></div>
+    <div class="info"><div class="ih">// WHY SPEC FIRST</div><p>Types constrain the solution space. Tests define correct behavior. Together, they give the AI guardrails that prevent hallucinated APIs, wrong signatures, and untested edge cases. Spec-first + AI is faster than AI-first + manual fixes.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">AI Slop Detection Checklist</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--red)">&#9679; Hallucinated APIs</span><span class="sv">AI invents functions/methods that don't exist. Always verify against docs and type definitions.</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">&#9679; Phantom imports</span><span class="sv">Imports packages that don't exist or are wrong version. Check <code>package.json</code> / <code>go.mod</code>.</span></div>
+      <div class="si"><span class="sk" style="color:var(--red)">&#9679; Confident but wrong</span><span class="sv">Plausible-sounding code with subtle bugs. Off-by-one errors, wrong comparison operators, swapped args.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">&#9679; Over-engineering</span><span class="sv">AI adds abstractions you didn't ask for. Factory pattern for one implementation. Unnecessary generics.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">&#9679; Security blind spots</span><span class="sv">Missing input validation, no rate limiting, hardcoded secrets in examples, SQL concatenation.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">&#9679; Stale patterns</span><span class="sv">Training data cutoff means AI may suggest deprecated APIs, old library versions, or outdated best practices.</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">&#9679; Missing error handling</span><span class="sv">Happy path only. No error handling, no edge cases, no null checks, no timeout handling.</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">&#9679; License contamination</span><span class="sv">Generated code may resemble copyleft (GPL) training data. Review for compliance in proprietary codebases.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Prompting Patterns</div>
+    <table class="tbl"><tr><th>Pattern</th><th>When</th><th>Example</th></tr>
+    <tr><td>Context stuffing</td><td>AI needs to understand your codebase</td><td>Paste the interface, types, and 2-3 example implementations before asking</td></tr>
+    <tr><td>Constraint prompting</td><td>You want specific output format</td><td>"Return only the function body. No explanation. Use TypeScript strict mode."</td></tr>
+    <tr><td>Rubber duck</td><td>You're stuck on a design decision</td><td>"Here are two approaches. List tradeoffs of each for my use case: [context]"</td></tr>
+    <tr><td>Test-first prompt</td><td>You want AI to fill in an implementation</td><td>"Here are my failing tests. Write the implementation that makes them pass."</td></tr>
+    <tr><td>Review prompt</td><td>You want a code review</td><td>"Review this diff for bugs, security issues, and missed edge cases."</td></tr>
+    <tr><td>Explain prompt</td><td>You're reading unfamiliar code</td><td>"Explain this function line by line. What are the edge cases?"</td></tr></table>
   </div>
 </div>
 
 <!-- 19 ML FUNDAMENTALS -->
 <div class="section" id="s-ml">
-  <div class="sec-head"><div class="sec-tag">// 19 · security &amp; ai</div><div class="sec-title">ML <em>Fundamentals</em></div><div class="sec-desc">Supervised vs unsupervised, bias/variance, evaluation metrics, and operational concerns for models in production.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 19 · security &amp; ai</div><div class="sec-title">ML <em>Fundamentals</em></div><div class="sec-desc">Learning paradigms, evaluation metrics with formulas, transformer architecture, bias-variance tradeoff, and validation strategy.</div></div>
   <div class="sub">
     <div class="sub-head">Learning Paradigms</div>
     <div class="g3">
-      <div class="card"><div class="ct">Supervised</div><div class="cb">Labeled data: classification, regression. Train/validation/test split — never tune on test set.</div></div>
-      <div class="card"><div class="ct">Unsupervised</div><div class="cb">Clustering, dimensionality reduction — no labels; interpret carefully.</div></div>
-      <div class="card"><div class="ct">Reinforcement</div><div class="cb">Agent + environment + reward — expensive to sample; safety critical in robotics.</div></div>
+      <div class="card"><div class="cl">Supervised Learning</div><div class="cb">Labeled data: input → output. Classification (discrete), regression (continuous). Train/validation/test split (70/15/15). Never tune hyperparameters on test set. Cross-validation for small datasets.</div></div>
+      <div class="card"><div class="cl">Unsupervised Learning</div><div class="cb">No labels. Clustering (k-means, DBSCAN), dimensionality reduction (PCA, t-SNE, UMAP), anomaly detection (isolation forest). Interpret results carefully — clusters ≠ ground truth.</div></div>
+      <div class="card"><div class="cl">Reinforcement Learning</div><div class="cb">Agent takes actions in environment to maximize cumulative reward. Exploration vs exploitation tradeoff. Sample-inefficient — millions of episodes to learn. RLHF fine-tunes LLMs from human preferences.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">Metrics</div>
-    <table class="tbl"><tr><th>Task</th><th>Metrics</th></tr>
-    <tr><td>Classification</td><td>Precision, recall, F1, ROC-AUC — pick based on cost of FP vs FN</td></tr>
-    <tr><td>Regression</td><td>MAE, RMSE, MAPE — outliers dominate RMSE</td></tr>
-    <tr><td>Ranking</td><td>NDCG, MRR</td></tr></table>
-    <div class="warn"><div class="wh">// DATA DRIFT</div><p>Production distribution shifts — monitor input and output distributions; retrain or recalibrate on schedule.</p></div>
+    <div class="sub-head">Evaluation Metrics</div>
+    <table class="tbl"><tr><th>Metric</th><th>Formula / Meaning</th><th>When to use</th><th>Pitfall</th></tr>
+    <tr><td>Accuracy</td><td>Correct / Total</td><td>Balanced classes only</td><td>99% accuracy on 99% majority class = useless</td></tr>
+    <tr><td>Precision</td><td>TP / (TP + FP)</td><td>Cost of false positive is high (spam filter)</td><td>Can be gamed by predicting very few positives</td></tr>
+    <tr><td>Recall</td><td>TP / (TP + FN)</td><td>Cost of false negative is high (cancer detection)</td><td>Can be gamed by predicting everything positive</td></tr>
+    <tr><td>F1 Score</td><td>2 × (P × R) / (P + R)</td><td>Balance precision and recall</td><td>Assumes equal cost of FP and FN</td></tr>
+    <tr><td>ROC-AUC</td><td>Area under ROC curve</td><td>Comparing models across thresholds</td><td>Misleading with highly imbalanced classes</td></tr>
+    <tr><td>RMSE</td><td>√(mean of squared errors)</td><td>Regression — penalizes large errors</td><td>Outliers dominate; consider MAE as alternative</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Transformer / LLM Architecture (Simplified)</div>
+    <div class="g4">
+      <div class="card"><div class="cl">Tokenization</div><div class="cb">Text → token IDs. BPE (GPT), SentencePiece (T5), tiktoken. Vocabulary size tradeoff: larger = more expressive, smaller = better generalization. Subword tokenization handles unseen words.</div></div>
+      <div class="card"><div class="cl">Self-Attention</div><div class="cb">Each token attends to all others. Q×K^T/√d → softmax → weights × V. O(n²) in sequence length — this is the context window bottleneck. Multi-head attention learns different relationship types.</div></div>
+      <div class="card"><div class="cl">Feed-Forward + LayerNorm</div><div class="cb">After attention: FFN (expand → GELU → contract) + residual connection + layer normalization. Repeated L times (GPT-4: ~120 layers). Parameters live mostly in FFN weights.</div></div>
+      <div class="card"><div class="cl">Decoding</div><div class="cb">Autoregressive: predict next token, append, repeat. Temperature controls randomness. Top-k / top-p (nucleus) sampling trims distribution. Beam search for deterministic outputs.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Bias-Variance Tradeoff</div>
+    <div class="g2">
+      <div class="card"><div class="cl">High Bias (underfitting)</div><div class="cb">Model too simple to capture patterns. Training error is high. Fix: more features, more complex model, less regularization, more training data (sometimes).</div></div>
+      <div class="card"><div class="cl">High Variance (overfitting)</div><div class="cb">Model memorizes training data, fails on unseen data. Training error low, validation error high. Fix: more data, regularization (L1/L2/dropout), simpler model, early stopping.</div></div>
+    </div>
+    <div class="info"><div class="ih">// VALIDATION STRATEGY</div><p>k-fold cross-validation for small datasets. Stratified split for imbalanced classes. Time-series: always split chronologically (no future leakage). Hold out a final test set that you touch exactly once.</p></div>
   </div>
 </div>
 
 <!-- 20 FRONTEND SYSTEMS -->
 <div class="section" id="s-fe">
-  <div class="sec-head"><div class="sec-tag">// 20 · frontend</div><div class="sec-title">Frontend <em>Systems</em></div><div class="sec-desc">Browser rendering pipeline, critical rendering path, hydration, and performance budgets for real users on slow devices.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 20 · frontend</div><div class="sec-title">Frontend <em>Systems</em></div><div class="sec-desc">JS event loop, critical rendering path, React reconciliation, performance patterns, module systems, and state management decision tree.</div></div>
   <div class="sub">
-    <div class="sub-head">Rendering Pipeline (simplified)</div>
-    <div class="flow"><span class="fs">HTML</span><span class="fa">→</span><span class="fs">DOM</span><span class="fa">→</span><span class="fs">CSSOM</span><span class="fa">→</span><span class="fs">Render tree</span><span class="fa">→</span><span class="fs">Layout</span><span class="fa">→</span><span class="fs">Paint</span><span class="fa">→</span><span class="fs">Composite</span></div>
-    <p class="body">JS can block parsing (unless <code>defer</code>/<code>async</code>). Large layout thrashing = read/write/read DOM in a loop — batch reads then writes.</p>
+    <div class="sub-head">JS Event Loop</div>
+    <div class="flow"><span class="fs">Call Stack</span><span class="fa">→</span><span class="fs">Microtasks (Promise, queueMicrotask)</span><span class="fa">→</span><span class="fs">Render (rAF, style, layout, paint)</span><span class="fa">→</span><span class="fs">Macrotasks (setTimeout, I/O)</span><span class="fa">→</span><span class="fs">repeat</span></div>
+    <div class="info"><div class="ih">// MICROTASKS FIRST</div><p>Microtasks (Promises, MutationObserver) drain completely before the browser renders or processes the next macrotask. An infinite microtask loop freezes the page entirely — no paint, no user interaction, nothing.</p></div>
   </div>
   <div class="sub">
-    <div class="sub-head">Web Vitals (Core)</div>
-    <div class="srow">
-      <div class="si"><span class="sk">LCP</span><span class="sv">Largest Contentful Paint — loading performance. Target &lt;2.5s.</span></div>
-      <div class="si"><span class="sk">INP</span><span class="sv">Interaction to Next Paint — responsiveness. Target &lt;200ms.</span></div>
-      <div class="si"><span class="sk">CLS</span><span class="sv">Cumulative Layout Shift — visual stability. Target &lt;0.1.</span></div>
+    <div class="sub-head">Critical Rendering Path</div>
+    <div class="flow"><span class="fs">HTML → DOM</span><span class="fa">→</span><span class="fs">CSS → CSSOM</span><span class="fa">→</span><span class="fs">Render Tree</span><span class="fa">→</span><span class="fs">Layout (reflow)</span><span class="fa">→</span><span class="fs">Paint</span><span class="fa">→</span><span class="fs">Composite</span></div>
+    <div class="g2">
+      <div class="card"><div class="cl">Reflow (expensive)</div><div class="cb">Triggered by: changing dimensions, reading <code>offsetHeight</code>, adding/removing DOM nodes. Recalculates geometry for affected subtree. Batch DOM reads then writes to avoid layout thrashing.</div></div>
+      <div class="card"><div class="cl">GPU-composited (cheap)</div><div class="cb"><code>transform</code>, <code>opacity</code>, <code>will-change</code>. These skip layout and paint — only composite. Use for animations. <code>translate3d(0,0,0)</code> promotes to GPU layer.</div></div>
+    </div>
+    <div class="warn"><div class="wh">// LAYOUT THRASHING</div><p><code>for (el of elements) { el.style.width = el.offsetWidth + 10 + 'px'; }</code> — reads and writes in a loop force synchronous reflow on every iteration. Read all first, then write all.</p></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">React Reconciliation (Virtual DOM)</div>
+    <div class="g2">
+      <div class="card"><div class="cl">Diffing algorithm</div><div class="cb">O(n) heuristic: different element types = full remount. Same type = update props. Lists use <code>key</code> to match items — missing/wrong keys cause unnecessary remounts and state loss.</div></div>
+      <div class="card"><div class="cl">Fiber architecture</div><div class="cb">Work is broken into units, yielded to the browser between frames. Enables concurrent features: <code>startTransition</code>, <code>Suspense</code>, priority-based rendering. Heavy renders no longer block input.</div></div>
     </div>
   </div>
   <div class="sub">
-    <div class="sub-head">SPA / SSR / SSG</div>
-    <div class="g2">
-      <div class="card"><div class="ct">CSR</div><div class="cb">Client renders — fast navigations after load, poor first paint without care.</div></div>
-      <div class="card"><div class="ct">SSR</div><div class="cb">Server sends HTML — good SEO and FCP; cost per request.</div></div>
-      <div class="card"><div class="ct">SSG</div><div class="cb">Pre-render at build — best for content; rebuild on change.</div></div>
-      <div class="card"><div class="ct">Hydration</div><div class="cb">Attach event listeners to server HTML — mismatch = bugs and double work; partial hydration reduces cost.</div></div>
+    <div class="sub-head">React Performance Patterns</div>
+    <table class="tbl"><tr><th>Pattern</th><th>What it does</th><th>When to use</th></tr>
+    <tr><td><code>React.memo</code></td><td>Skips re-render if props haven't changed (shallow compare)</td><td>Expensive child components with stable props</td></tr>
+    <tr><td><code>useMemo</code></td><td>Memoizes computed values</td><td>Expensive calculations derived from props/state</td></tr>
+    <tr><td><code>useCallback</code></td><td>Stable function reference across renders</td><td>Passing callbacks to memoized children</td></tr>
+    <tr><td><code>startTransition</code></td><td>Marks updates as non-urgent, keeps UI responsive</td><td>Search/filter with large lists, tab switching</td></tr>
+    <tr><td>Virtualization</td><td>Only render visible rows (<code>react-window</code>, <code>tanstack-virtual</code>)</td><td>Lists with 1000+ items</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Module Systems &amp; Bundlers</div>
+    <table class="tbl"><tr><th>System</th><th>Syntax</th><th>Environment</th><th>Tree-shakeable</th></tr>
+    <tr><td>ESM (ES Modules)</td><td><code>import</code> / <code>export</code></td><td>Browser, Node 14+</td><td>Yes — static analysis at build time</td></tr>
+    <tr><td>CJS (CommonJS)</td><td><code>require</code> / <code>module.exports</code></td><td>Node.js (legacy)</td><td>No — dynamic, evaluated at runtime</td></tr>
+    <tr><td>Vite</td><td>Native ESM in dev, Rollup for prod</td><td>Frontend</td><td>Yes + fast HMR via native ESM</td></tr>
+    <tr><td>esbuild</td><td>ESM + CJS</td><td>Build tool / bundler</td><td>Yes — 100x faster than Webpack (Go-based)</td></tr>
+    <tr><td>Webpack</td><td>ESM + CJS + loaders</td><td>Everything (legacy)</td><td>Yes but complex config, slow builds</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">State Management Decision Tree</div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--green)">Component-local</span><span class="sv"><code>useState</code> / <code>useReducer</code>. Start here. Most state is local. Lift state only when two siblings need it.</span></div>
+      <div class="si"><span class="sk" style="color:var(--cyan)">Shared (few consumers)</span><span class="sv">Context + <code>useReducer</code>. Good for theme, auth, locale. Split contexts to avoid re-rendering unrelated consumers.</span></div>
+      <div class="si"><span class="sk" style="color:var(--purple)">Server state</span><span class="sv">TanStack Query / SWR. Cache, dedupe, refetch, optimistic updates. Don't put server data in Redux — it's a different problem.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Complex client state</span><span class="sv">Zustand (simple), Jotai (atomic), Redux Toolkit (when you need devtools + middleware + time travel). Pick one, not all.</span></div>
     </div>
   </div>
 </div>
 
 <!-- 21 LANGUAGE THEORY -->
 <div class="section" id="s-lang">
-  <div class="sec-head"><div class="sec-tag">// 21 · frontend &amp; language</div><div class="sec-title">Language <em>Theory</em></div><div class="sec-desc">Chomsky hierarchy, parsing strategies, and how type systems catch bugs at compile time.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 21 · frontend &amp; language</div><div class="sec-title">Language <em>Theory</em></div><div class="sec-desc">Type system taxonomy, structural vs nominal typing, algebraic data types, memory management models, Rust ownership, execution models, and formal grammars.</div></div>
   <div class="sub">
-    <div class="sub-head">Chomsky Hierarchy</div>
-    <table class="tbl"><tr><th>Type</th><th>Grammar</th><th>Automaton</th><th>Example</th></tr>
-    <tr><td>Type 3 — Regular</td><td>Finite</td><td>Finite state machine</td><td>Keywords, lex tokens</td></tr>
-    <tr><td>Type 2 — Context-free</td><td>Pushdown</td><td>PDA</td><td>Most programming syntax</td></tr>
-    <tr><td>Type 1 — Context-sensitive</td><td>Linear-bounded</td><td>Linear bounded automaton</td><td>Rarer in PL design</td></tr>
-    <tr><td>Type 0 — Unrestricted</td><td>Turing-complete</td><td>Turing machine</td><td>Template metaprogramming, macros</td></tr></table>
+    <div class="sub-head">Type System Taxonomy</div>
+    <table class="tbl"><tr><th></th><th>Strong</th><th>Weak</th></tr>
+    <tr><td style="color:var(--cyan)"><strong>Static</strong> (checked at compile time)</td><td>Rust, Haskell, Java, TypeScript (strict)</td><td>C (implicit casts, void*)</td></tr>
+    <tr><td style="color:var(--amber)"><strong>Dynamic</strong> (checked at runtime)</td><td>Python, Ruby, Elixir</td><td>JavaScript, PHP (legacy), Perl</td></tr></table>
+    <div class="g2">
+      <div class="card"><div class="cl">Structural typing (TypeScript)</div><div class="cb">Types are compatible if their shapes match. <code>{name: string}</code> is assignable to any type with a <code>name: string</code> field — names don't matter, structure does. Enables duck typing with type safety.</div></div>
+      <div class="card"><div class="cl">Nominal typing (Java, Rust)</div><div class="cb">Types are compatible only if they have the same name/declaration. Two identical structs with different names are different types. Prevents accidental substitution. Use newtype pattern for type safety.</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="cl">Sum types (tagged unions)</div><div class="cb"><code>type Result = Ok(T) | Err(E)</code>. A value is exactly one variant. Exhaustive matching catches unhandled cases at compile time. Rust <code>enum</code>, TypeScript discriminated unions, Haskell ADTs.</div></div>
+      <div class="card"><div class="cl">Product types (records/structs)</div><div class="cb">A value contains all fields simultaneously. <code>struct Point { x: f64, y: f64 }</code>. Tuples are anonymous product types. Most data structures are product types.</div></div>
+    </div>
   </div>
   <div class="sub">
-    <div class="sub-head">Type Systems</div>
-    <div class="g2">
-      <div class="card"><div class="ct">Static vs dynamic</div><div class="cb">Static: errors before run (with soundness caveats). Dynamic: flexibility, runtime type tags.</div></div>
-      <div class="card"><div class="ct">Structural vs nominal</div><div class="cb">TypeScript: structural — shape matters. Java: nominal — name matters.</div></div>
-      <div class="card"><div class="ct">Variance</div><div class="cb">Covariance/contravariance in generics — function params often contravariant; returns covariant.</div></div>
+    <div class="sub-head">Memory Management Models</div>
+    <div class="g3">
+      <div class="card"><div class="cl">Manual (C, C++)</div><div class="cb"><code>malloc</code>/<code>free</code>. Maximum control, maximum risk. Use-after-free, double-free, memory leaks. Valgrind and AddressSanitizer catch bugs, but prevention is better.</div></div>
+      <div class="card"><div class="cl">Garbage Collected (Go, Java, JS, Python)</div><div class="cb">Runtime tracks references, frees unreachable objects. Tracing GC (mark-sweep), generational GC, concurrent GC. Tradeoffs: pause times, memory overhead, unpredictable latency spikes.</div></div>
+      <div class="card"><div class="cl">Ownership (Rust)</div><div class="cb">Compiler enforces ownership + borrowing rules. No GC, no manual free, no use-after-free. Zero-cost abstractions. Compile-time guarantees eliminate entire classes of bugs.</div></div>
     </div>
+    <div class="srow">
+      <div class="si"><span class="sk" style="color:var(--amber)">Rust Rule 1</span><span class="sv">Each value has exactly one owner. When the owner goes out of scope, the value is dropped.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Rust Rule 2</span><span class="sv">You can have either one mutable reference OR any number of immutable references — never both.</span></div>
+      <div class="si"><span class="sk" style="color:var(--amber)">Rust Rule 3</span><span class="sv">References must always be valid — no dangling pointers, enforced at compile time by the borrow checker.</span></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Execution Models</div>
+    <table class="tbl"><tr><th>Model</th><th>Examples</th><th>Tradeoff</th><th>When to choose</th></tr>
+    <tr><td>AOT compiled</td><td>C, C++, Rust, Go</td><td>Fast startup, predictable perf, no runtime needed</td><td>Systems, CLI tools, containers, serverless (cold start)</td></tr>
+    <tr><td>JIT compiled</td><td>JVM (Java, Kotlin), V8 (JS, TS), .NET</td><td>Warmup latency, peak performance via profiling</td><td>Long-running servers, adaptive optimization</td></tr>
+    <tr><td>Interpreted</td><td>Python (CPython), Ruby (MRI), PHP</td><td>Slow execution, fast iteration, easy debugging</td><td>Scripting, prototyping, glue code</td></tr>
+    <tr><td>Bytecode VM</td><td>JVM, BEAM (Erlang/Elixir), WASM</td><td>Portable, sandboxed, platform-independent</td><td>Cross-platform, browser (WASM), distributed (BEAM)</td></tr></table>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Formal Grammars (Chomsky Hierarchy)</div>
+    <table class="tbl"><tr><th>Type</th><th>Grammar</th><th>Recognizer</th><th>Use in PL</th></tr>
+    <tr><td>Type 3 — Regular</td><td>a*b+</td><td>Finite automaton (regex engine)</td><td>Lexer: tokenize keywords, identifiers, literals</td></tr>
+    <tr><td>Type 2 — Context-free</td><td>S → aSb | ε</td><td>Pushdown automaton (PDA)</td><td>Parser: most programming language syntax, balanced parens</td></tr>
+    <tr><td>Type 1 — Context-sensitive</td><td>aSb → aXb</td><td>Linear bounded automaton</td><td>Rare — some macro/template systems, type-dependent parsing</td></tr>
+    <tr><td>Type 0 — Unrestricted</td><td>Any production rule</td><td>Turing machine</td><td>C++ templates, TypeScript type system (Turing-complete)</td></tr></table>
   </div>
 </div>
 
 <!-- 22 COMPILERS -->
 <div class="section" id="s-compilers">
-  <div class="sec-head"><div class="sec-tag">// 22 · frontend &amp; language</div><div class="sec-title"><em>Compilers</em></div><div class="sec-desc">Lexing, parsing, IR, optimization, and codegen — the pipeline from source text to machine code.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 22 · frontend &amp; language</div><div class="sec-title"><em>Compilers</em></div><div class="sec-desc">The full compiler pipeline from source text to machine code, with detail on each phase and why it matters practically.</div></div>
   <div class="sub">
-    <div class="sub-head">Phases</div>
-    <div class="flow"><span class="fs">Lexer</span><span class="fa">→</span><span class="fs">Parser</span><span class="fa">→</span><span class="fs">AST</span><span class="fa">→</span><span class="fs">Semantic analysis</span><span class="fa">→</span><span class="fs">IR</span><span class="fa">→</span><span class="fs">Optimize</span><span class="fa">→</span><span class="fs">Codegen</span></div>
-    <p class="body">Lexer: regex → tokens. Parser: CFG → AST (LL, LR, PEG). SSA form enables many optimizations (constant folding, dead code elimination).</p>
+    <div class="sub-head">Compiler Pipeline</div>
+    <div class="flow"><span class="fs">Source</span><span class="fa">→</span><span class="fs">Lexer</span><span class="fa">→</span><span class="fs">Parser</span><span class="fa">→</span><span class="fs">AST</span><span class="fa">→</span><span class="fs">Semantic Analysis</span><span class="fa">→</span><span class="fs">IR Generation</span><span class="fa">→</span><span class="fs">Optimization</span><span class="fa">→</span><span class="fs">Code Generation</span></div>
+    <div class="g3">
+      <div class="card"><div class="cl">1. Lexer (Tokenizer)</div><div class="cb">Source text → token stream. Regular expressions match keywords, identifiers, literals, operators. Strips whitespace and comments. Errors: unexpected characters, unterminated strings.</div></div>
+      <div class="card"><div class="cl">2. Parser</div><div class="cb">Token stream → Abstract Syntax Tree (AST). Context-free grammar rules. LL(k) (recursive descent), LR (yacc/bison), PEG (packrat). Errors: syntax errors with location info.</div></div>
+      <div class="card"><div class="cl">3. Semantic Analysis</div><div class="cb">Type checking, scope resolution, name binding. Catches type mismatches, undeclared variables, unreachable code. Produces annotated AST with type information on every node.</div></div>
+      <div class="card"><div class="cl">4. IR (Intermediate Representation)</div><div class="cb">AST → platform-independent IR. SSA form (Static Single Assignment): each variable assigned exactly once. Enables powerful optimizations. LLVM IR, JVM bytecode, WASM are IR formats.</div></div>
+      <div class="card"><div class="cl">5. Optimization</div><div class="cb">Constant folding, dead code elimination, loop unrolling, inlining, register allocation. SSA form enables most of these. Tradeoff: compile time vs runtime performance.</div></div>
+      <div class="card"><div class="cl">6. Code Generation</div><div class="cb">IR → target code (x86, ARM, WASM, bytecode). Instruction selection, register allocation, scheduling. Platform-specific optimizations. Linker resolves symbols across compilation units.</div></div>
+    </div>
   </div>
   <div class="sub">
-    <div class="sub-head">JIT vs AOT</div>
-    <div class="g2">
-      <div class="card"><div class="ct">AOT</div><div class="cb">Compile before run — predictable startup, native binaries (Go, Rust).</div></div>
-      <div class="card"><div class="ct">JIT</div><div class="cb">Profile-guided optimization at runtime — JVM, V8. Warmup latency, peak performance.</div></div>
-    </div>
+    <div class="sub-head">Why This Matters Practically</div>
+    <ul class="rlist">
+      <li><i>·</i><strong>ESLint, Prettier, TypeScript</strong> — all work on ASTs. Understanding ASTs helps you write custom lint rules and codemods.</li>
+      <li><i>·</i><strong>Babel, SWC, esbuild</strong> — source-to-source compilers (transpilers). Parse JS → transform AST → generate JS. SWC/esbuild are 10-100x faster because they're written in Rust/Go.</li>
+      <li><i>·</i><strong>WASM</strong> — compile Rust/C/Go to WebAssembly IR. Runs in browser sandbox at near-native speed. Used for compute-heavy tasks: image processing, WASM-based SQLite, crypto.</li>
+      <li><i>·</i><strong>JIT warmup</strong> — V8/JVM profile hot code and recompile with optimizations. First requests are slow (interpreted), later requests are fast (compiled). Pre-warm in production.</li>
+      <li><i>·</i><strong>Sourcemaps</strong> — map generated/minified code back to source. Essential for debugging in production. Generated as a compiler output step.</li>
+    </ul>
   </div>
 </div>
 
 <!-- 23 DESIGN PATTERNS -->
 <div class="section" id="s-design">
-  <div class="sec-head"><div class="sec-tag">// 23 · reference</div><div class="sec-title">Design <em>Patterns</em></div><div class="sec-desc">GoF classics and architectural patterns — vocabulary for structure, not an excuse for over-engineering.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 23 · reference</div><div class="sec-title">Design <em>Patterns</em></div><div class="sec-desc">All 23 GoF patterns organized by category, with practical descriptions, plus meta-principles for when to apply them.</div></div>
   <div class="sub">
-    <div class="sub-head">GoF (selected)</div>
-    <table class="tbl"><tr><th>Pattern</th><th>Intent</th></tr>
-    <tr><td>Strategy</td><td>Family of interchangeable algorithms</td></tr>
-    <tr><td>Observer</td><td>Notify dependents of state changes</td></tr>
-    <tr><td>Factory</td><td>Encapsulate object creation</td></tr>
-    <tr><td>Adapter</td><td>Wrap incompatible interfaces</td></tr>
-    <tr><td>Decorator</td><td>Add behavior without subclass explosion</td></tr>
-    <tr><td>Singleton</td><td>One instance — often an antipattern in testable code; prefer DI</td></tr></table>
+    <div class="sub-head">Creational Patterns</div>
+    <div class="g3">
+      <div class="card blue"><div class="cl">Singleton</div><div class="cb">One instance globally. Often an anti-pattern — hides dependencies, breaks testing. Prefer dependency injection. Use only for truly global resources (logger, config).</div></div>
+      <div class="card blue"><div class="cl">Factory Method</div><div class="cb">Delegate instantiation to subclasses. <code>createTransport()</code> returns Truck or Ship based on context. Open/Closed: add new types without changing existing code.</div></div>
+      <div class="card blue"><div class="cl">Abstract Factory</div><div class="cb">Create families of related objects. <code>UIFactory.createButton()</code> returns MacButton or WinButton. Ensures consistent look-and-feel across platform variants.</div></div>
+      <div class="card blue"><div class="cl">Builder</div><div class="cb">Construct complex objects step-by-step. <code>QueryBuilder.select("*").from("users").where("active")</code>. Separates construction from representation. Good for objects with many optional params.</div></div>
+      <div class="card blue"><div class="cl">Prototype</div><div class="cb">Clone existing objects instead of constructing new ones. Useful when creation is expensive or when you need copies with slight variations. JS <code>Object.create()</code> is prototype-based.</div></div>
+    </div>
   </div>
   <div class="sub">
-    <div class="sub-head">Architectural</div>
+    <div class="sub-head">Structural Patterns</div>
     <div class="g3">
-      <div class="card"><div class="ct">Layered</div><div class="cb">Presentation → domain → data — clear boundaries, watch for leaky abstractions.</div></div>
-      <div class="card"><div class="ct">Hexagonal</div><div class="cb">Ports and adapters — domain core independent of DB/UI.</div></div>
-      <div class="card"><div class="ct">Event-driven</div><div class="cb">Loose coupling via messages — eventual consistency, ordering complexity.</div></div>
+      <div class="card purple"><div class="cl">Adapter</div><div class="cb">Wrap an incompatible interface to make it work with your code. <code>XMLToJSON(oldAPI)</code>. Essential for integrating third-party libraries and legacy systems.</div></div>
+      <div class="card purple"><div class="cl">Bridge</div><div class="cb">Separate abstraction from implementation. Shape + Renderer can vary independently. Avoids class explosion: M shapes × N renderers = M+N classes instead of M×N.</div></div>
+      <div class="card purple"><div class="cl">Composite</div><div class="cb">Tree structure where leaves and composites share interface. File/Folder, Component tree. <code>render()</code> works on both leaf and container — recursive composition.</div></div>
+      <div class="card purple"><div class="cl">Decorator</div><div class="cb">Add behavior dynamically by wrapping. <code>compress(encrypt(fileStream))</code>. Alternative to subclassing. Middleware chains, Express/Koa handlers, Python decorators.</div></div>
+      <div class="card purple"><div class="cl">Facade</div><div class="cb">Simplified interface to a complex subsystem. <code>VideoConverter.convert(file, "mp4")</code> hides codec, bitrate, container logic. Good API design is a facade.</div></div>
+      <div class="card purple"><div class="cl">Proxy</div><div class="cb">Control access to an object. Lazy loading, caching, access control, logging. JS <code>Proxy</code> object, database connection pools, API rate limiters.</div></div>
     </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Behavioral Patterns</div>
+    <div class="g4">
+      <div class="card cyan"><div class="cl">Strategy</div><div class="cb">Family of interchangeable algorithms. <code>sort(data, compareFn)</code>. Select algorithm at runtime. Eliminates conditionals. Functions as strategies in JS/TS.</div></div>
+      <div class="card cyan"><div class="cl">Observer</div><div class="cb">Notify dependents of state changes. EventEmitter, pub/sub, React state updates. Decouples publisher from subscribers. Watch for memory leaks — always unsubscribe.</div></div>
+      <div class="card cyan"><div class="cl">Command</div><div class="cb">Encapsulate a request as an object. Enables undo/redo, queuing, logging. <code>{execute(), undo()}</code>. Transaction patterns, CQRS command side.</div></div>
+      <div class="card cyan"><div class="cl">Iterator</div><div class="cb">Sequential access without exposing internal structure. JS iterators, generators (<code>function*</code>), <code>for...of</code>. Lazy evaluation for large/infinite sequences.</div></div>
+      <div class="card cyan"><div class="cl">State</div><div class="cb">Object behavior changes with internal state. State machine: <code>order.ship()</code> only valid in "paid" state. Eliminates complex conditionals. XState for UI state machines.</div></div>
+      <div class="card cyan"><div class="cl">Template Method</div><div class="cb">Define algorithm skeleton, let subclasses fill in steps. <code>abstract parse()</code> in BaseImporter. React class lifecycle methods were template methods.</div></div>
+      <div class="card cyan"><div class="cl">Chain of Responsibility</div><div class="cb">Pass request along a chain of handlers. Middleware: auth → validate → log → handle. Express middleware, DOM event bubbling, exception handling chains.</div></div>
+      <div class="card cyan"><div class="cl">Mediator</div><div class="cb">Centralize complex communications. Chat room mediates between users. Redux store mediates between React components. Reduces coupling but can become a god object.</div></div>
+    </div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">Meta-Principles</div>
+    <table class="tbl"><tr><th>Principle</th><th>Meaning</th><th>Pattern connection</th></tr>
+    <tr><td>Program to interfaces, not implementations</td><td>Depend on abstractions. Swap implementations freely.</td><td>Strategy, Factory, Bridge, Adapter</td></tr>
+    <tr><td>Favor composition over inheritance</td><td>Build complex behavior by combining simple objects</td><td>Decorator, Composite, Strategy</td></tr>
+    <tr><td>Encapsulate what varies</td><td>Isolate the parts that change from the parts that stay the same</td><td>Strategy, State, Template Method</td></tr>
+    <tr><td>Single Responsibility</td><td>One reason to change. One class, one job.</td><td>All patterns aim for this</td></tr>
+    <tr><td>Open/Closed</td><td>Open for extension, closed for modification</td><td>Strategy, Decorator, Observer</td></tr>
+    <tr><td>Don't over-pattern</td><td>Patterns are tools, not goals. A function is often enough.</td><td>Start simple. Refactor to patterns when complexity demands it.</td></tr></table>
   </div>
 </div>
 
 <!-- 24 GOLDEN RULES -->
 <div class="section" id="s-rules">
-  <div class="sec-head"><div class="sec-tag">// 24 · reference</div><div class="sec-title"><em>Golden</em> Rules</div><div class="sec-desc">Short principles worth internalizing — the checklist before you ship, refactor, or declare victory.</div></div>
+  <div class="sec-head"><div class="sec-tag">// 24 · reference</div><div class="sec-title"><em>Golden</em> Rules</div><div class="sec-desc">14 rules worth internalizing — the checklist before you ship, refactor, or declare victory. Plus the architect's mindset shift.</div></div>
   <div class="sub">
     <div class="sub-head">Ship</div>
-    <div class="grule"><div class="gr-num">01</div><div class="gr-text">Make it work, make it right, make it fast — in that order.</div><div class="gr-why">Optimization without correctness is waste.</div></div>
-    <div class="grule"><div class="gr-num">02</div><div class="gr-text">The database is the hardest thing to change — design schemas with migrations in mind.</div><div class="gr-why">Backward-compatible deploys require expand-contract patterns.</div></div>
-    <div class="grule"><div class="gr-num">03</div><div class="gr-text">Observability is not optional — if you cannot measure it, you cannot fix it at 3am.</div><div class="gr-why">Metrics, logs, traces — pick a stack and instrument consistently.</div></div>
+    <div class="grule"><div class="gr-num">RULE 01</div><div class="gr-text">Make it work, make it right, make it fast — in that order.</div><div class="gr-why">Optimization without correctness is waste. Correctness without shipping is a hobby project.</div></div>
+    <div class="grule"><div class="gr-num">RULE 02</div><div class="gr-text">The database is the hardest thing to change — design schemas with migrations in mind.</div><div class="gr-why">Backward-compatible deploys require expand-contract patterns. Schema changes outlive code changes.</div></div>
+    <div class="grule"><div class="gr-num">RULE 03</div><div class="gr-text">Observability is not optional — if you cannot measure it, you cannot fix it at 3am.</div><div class="gr-why">Metrics, logs, traces — instrument consistently. The system you can't observe is the system that pages you.</div></div>
+    <div class="grule"><div class="gr-num">RULE 04</div><div class="gr-text">Deploy small, deploy often. The smaller the diff, the easier the rollback.</div><div class="gr-why">Big-bang releases are a bet against Murphy's Law. You will lose.</div></div>
   </div>
   <div class="sub">
     <div class="sub-head">Safety</div>
-    <div class="grule"><div class="gr-num">04</div><div class="gr-text">Never trust input — validate at boundaries, encode on output.</div><div class="gr-why">XSS, injection, and SSRF all start with trusting the wrong bytes.</div></div>
-    <div class="grule"><div class="gr-num">05</div><div class="gr-text">Least privilege everywhere — humans, services, and CI tokens.</div><div class="gr-why">Blast radius limits when credentials leak.</div></div>
-    <div class="grule"><div class="gr-num">06</div><div class="gr-text">Secrets belong in vaults and env at runtime — never in repos or images.</div><div class="gr-why">Git history is forever.</div></div>
+    <div class="grule"><div class="gr-num">RULE 05</div><div class="gr-text">Never trust input — validate at boundaries, encode on output.</div><div class="gr-why">XSS, injection, and SSRF all start with trusting the wrong bytes.</div></div>
+    <div class="grule"><div class="gr-num">RULE 06</div><div class="gr-text">Least privilege everywhere — humans, services, and CI tokens.</div><div class="gr-why">Blast radius limits when credentials leak. And they will leak.</div></div>
+    <div class="grule"><div class="gr-num">RULE 07</div><div class="gr-text">Secrets belong in vaults and env at runtime — never in repos, images, or logs.</div><div class="gr-why">Git history is forever. Container layers are extractable. Log aggregators are shared.</div></div>
+    <div class="grule"><div class="gr-num">RULE 08</div><div class="gr-text">Every dependency is a liability — audit, pin, and update deliberately.</div><div class="gr-why">Supply chain attacks are the new attack vector. An unaudited transitive dependency is an unlocked door.</div></div>
   </div>
   <div class="sub">
     <div class="sub-head">Collaboration</div>
-    <div class="grule"><div class="gr-num">07</div><div class="gr-text">Small PRs, clear commits, tests that fail for the right reason.</div><div class="gr-why">Review quality drops with diff size.</div></div>
-    <div class="grule"><div class="gr-num">08</div><div class="gr-text">Document decisions (ADR) — future you will not remember the tradeoff.</div><div class="gr-why">Context beats heroic recall.</div></div>
-    <div class="info"><div class="ih">// TL;DR</div><p>Correctness first, security by default, observable systems, kind code reviews. Everything else is commentary.</p></div>
+    <div class="grule"><div class="gr-num">RULE 09</div><div class="gr-text">Small PRs, clear commits, tests that fail for the right reason.</div><div class="gr-why">Review quality drops exponentially with diff size. 200 lines = thorough review. 2000 lines = "LGTM."</div></div>
+    <div class="grule"><div class="gr-num">RULE 10</div><div class="gr-text">Document decisions (ADR) — future you will not remember the tradeoff.</div><div class="gr-why">Context beats heroic recall. A one-page ADR saves weeks of re-discovery.</div></div>
+    <div class="grule"><div class="gr-num">RULE 11</div><div class="gr-text">Code is read 10x more than it is written — optimize for the reader.</div><div class="gr-why">Clever code is a debt. Clear code is a gift to your teammates and to future you.</div></div>
+    <div class="grule"><div class="gr-num">RULE 12</div><div class="gr-text">Automate everything you do twice — but not before.</div><div class="gr-why">Premature automation is premature abstraction. Wait until the pattern is clear.</div></div>
+  </div>
+  <div class="sub">
+    <div class="sub-head">AI-Native</div>
+    <div class="grule"><div class="gr-num">RULE 13</div><div class="gr-text">AI writes the code, you own the quality. Review every line. Test every path.</div><div class="gr-why">AI optimizes for plausibility, not correctness. Your name is on the commit.</div></div>
+    <div class="grule"><div class="gr-num">RULE 14</div><div class="gr-text">Write the spec first (types + tests), then let AI fill in the implementation.</div><div class="gr-why">Constraints narrow the solution space. Unconstrained AI generation = unconstrained bugs.</div></div>
+  </div>
+  <hr>
+  <div class="sub">
+    <div class="sub-head">The Architect's Mindset</div>
+    <table class="tbl"><tr><th>A coder thinks...</th><th>An architect thinks...</th></tr>
+    <tr><td>"How do I build this feature?"</td><td>"How does this feature fail at scale?"</td></tr>
+    <tr><td>"It works on my machine."</td><td>"It works under load, in every environment, after a dependency fails."</td></tr>
+    <tr><td>"I need a database."</td><td>"What are the read/write patterns, consistency requirements, and data lifecycle?"</td></tr>
+    <tr><td>"Let me add a microservice."</td><td>"Does the organizational and operational cost justify the decoupling benefit?"</td></tr>
+    <tr><td>"This is technically elegant."</td><td>"Can a new team member understand this in 15 minutes?"</td></tr>
+    <tr><td>"We should use the latest framework."</td><td>"Will this be maintained in 3 years? Who owns it? What's the migration cost?"</td></tr>
+    <tr><td>"Let me optimize this function."</td><td>"Is this function even in the hot path? Show me the flame graph."</td></tr>
+    <tr><td>"Security is the security team's job."</td><td>"Every engineer is responsible for security. Shift left."</td></tr>
+    <tr><td>"The test passed."</td><td>"Does it test the right thing? What's the false-pass rate?"</td></tr>
+    <tr><td>"I'll document it later."</td><td>"If it's not documented now, it never will be. Write the ADR before the PR."</td></tr>
+    <tr><td>"AI can write this for me."</td><td>"AI can draft this for me. I still need to verify, test, and own it."</td></tr></table>
   </div>
 </div>
 
