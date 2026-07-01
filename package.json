@@ -20,7 +20,7 @@
     "verify": "node scripts/verify-reference.mjs"
   },
   "devDependencies": {
-    "vite": "^6.3.5"
+    "vite": "^8.1.2"
   },
   "engines": {
     "node": ">=20"
